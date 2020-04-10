@@ -2,10 +2,15 @@ require import AllCore List SmtMap.
 
 require import AAPI ALanguage AMPSemantics MPAPISemantics AProtocolLibrary ProtocolAPI.
 require import MPCProtocolLibrary ASecretSharingScheme.
+require import Utils.
+
+import SS.
+import MPCLib.
+import MPCAPI.
 
 theory MultiPartyProtocolAPISemantics.
 
-  type partyId_t = [ | P1 | P2 | P3 ].
+  (*type partyId_t = partyId_t.
 
   clone import SecretSharingScheme with
     type partyId_t = partyId_t,
@@ -19,7 +24,7 @@ theory MultiPartyProtocolAPISemantics.
     type SecretSharingScheme.value_t = value_t,
     type SecretSharingScheme.share_t = share_t,
     op SecretSharingScheme.nshr = nshr,
-    op SecretSharingScheme.unshr = unshr.
+    op SecretSharingScheme.unshr = unshr.*)
 
   (** Language L1 *)
   clone import Language as L1 with
@@ -53,7 +58,7 @@ theory MultiPartyProtocolAPISemantics.
     type outputs_t = secret_t,
     type sop_t = sop_t.*)
 
-  clone import ProtocolAPI with
+  (*clone import ProtocolAPI with
     op ProtocolLibrary.n = MPCProtocolLibrary.n,
     type ProtocolLibrary.partyId_t = partyId_t,
     type ProtocolLibrary.value_t = value_t,
@@ -72,7 +77,7 @@ theory MultiPartyProtocolAPISemantics.
     op ProtocolLibrary.sim_in = sim_in,
     op ProtocolLibrary.sim_out = sim_out,
     op ProtocolLibrary.sim_sop = sim_sop.
-  import API.
+  import API.*)
 
   clone import MultiPartyAPISemantics with
     theory L1 <- L1,
@@ -88,8 +93,8 @@ theory MultiPartyProtocolAPISemantics.
     type API.apiCall_data = apiCall_data,
     type API.apiRes_data = apiRes_data,
     type API.apiCallRes = apiCallRes,
-    op API.apiCall = ProtocolAPI.apiCall,
-    op API.apiRes = ProtocolAPI.apiRes,
+    op API.apiCall = apiCall,
+    op API.apiRes = apiRes,
     op SemP1.updRes (x: apiRes_data option) (st: ('a,'b) APIst) = (omap ApiRes x, st.`2),
     op SemP1.st_from_step (x: ('a,'b) ECall) = (omap ApiCall x.`1, (x.`2.`1, x.`2.`2)),
     op SemP2.updRes (x: apiRes_data option) (st: ('a,'b) APIst) = (omap ApiRes x, st.`2),

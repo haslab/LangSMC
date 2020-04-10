@@ -104,5 +104,121 @@ theory SinglePartyAPISemantics.
   clone import SinglePartySemantics with
     theory Language <- Language,
     type sideInfo_t = sideInfo_t.
+
+(* multiple steps... *)
+op stepPiter ['l, 'e]
+  (step: 'l -> 'e -> apiRes_data option -> (('l,'e) ECall) option)
+  (k:int)
+  (st:('l,'e) APIst)
+  : ('l,'e) APIst option =
+  IntExtra.IterOp.iter k
+    (fun ost => if ost <> None && callSt (oget ost) = None
+              then let st = oget ost in 
+                   let ecall = step (progSt st) (envSt st) (resSt st) in
+                   omap st_from_step ecall else None) (Some st).
+
+lemma stepPiter0
+ (step : 'l -> 'e -> apiRes_data option -> (('l,'e) ECall) option) 
+ (k : int)
+ (st : ('l,'e) APIst) :
+ k <= 0 =>
+ stepPiter step k st = Some st.
+proof. by move => ?; rewrite /stepPplus iter0. qed.
+
+lemma nosmt stepPiter1 ['l, 'e] step (st:('l,'e) APIst):
+ callSt st = None =>
+ stepPiter step 1 st
+ = omap st_from_step (step (progSt st) (envSt st) (resSt st)).
+proof.
+rewrite /stepPplus /progSt /envSt /resSt.
+by rewrite iter1 /= => ->.
+qed.
+
+lemma nosmt stepPiterS_none ['l, 'e] step k (s:('l,'e) APIst):
+ stepPiter step k s = None =>
+ stepPiter step (k+1) s = None.
+proof.
+move => ?; rewrite /progSt /envSt /resSt.
+case: (0 <= k) => E.
+ by rewrite IntExtra.IterOp.iterS //= H => *.
+smt(iter0).
+qed.
+
+lemma nosmt stepPiterS_some ['l, 'e] step k (s s':('l,'e) APIst) x:
+ 0 <= k =>
+ stepPiter step k s = Some s' =>
+ callSt s' = None =>
+ step (progSt s') (envSt s') (resSt s') = Some x =>
+ stepPiter step (k+1) s = Some (st_from_step x).
+proof.
+move => ???; rewrite /progSt /envSt /resSt.
+rewrite IntExtra.IterOp.iterS //= => *.
+by rewrite /st_from_step  H0 /= H1 H2.
+qed.
+
+lemma nosmt stepPiterS ['l, 'e] step k (s : ('l,'e) APIst):
+ 0 <= k =>
+ stepPiter step (k+1) s = obind (stepPiter step 1) (stepPiter step k s).
+proof.
+elim/natind: k s => //=; first smt(stepPiter0).
+move=> n Hn IH s H.
+rewrite /stepPiter /= (_:2 = 1+1) 1:/# addzA iterS //= IH //=.
+case: (stepPiter step n s) => //= st'.
+case: (stepPiter step 1 st') => //= st''.
+by rewrite iter1.
+qed.
+
+lemma nosmt stepPiter_lt ['l, 'e] step (k i:int) (s s': ('l,'e) APIst):
+ 0 <= i < k =>
+ stepPiter step k s <> None =>
+ stepPiter step i s = Some s' =>
+ stepPiter step 1 s' <> None.
+proof.
+elim/natind: k; first smt().
+move=> n Hn IH H.
+rewrite stepPiterS //.
+case: (i=n) => [->|E].
+ by move=> ??; move: H0; rewrite H1.
+pose a:= stepPiter step n s.
+case: {2}a (eq_refl a) => [|a'] Ea //=; rewrite Ea //=.
+move=> *; apply IH; smt(). 
+qed.
+
+lemma callSt_stepPiter ['l, 'e] step k (s:('l,'e) APIst):
+ callSt s <> None =>
+ k <= 0 \/ stepPiter step k s = None.
+proof.
+move => ?.
+elim/natind: k.
+ by move=> ??; left.
+move=> n Hn [?|?].
+ have ->/=: n=0 by smt().
+ by rewrite /stepPiter /= iter1 /= H.
+by right; rewrite stepPiterS_none.
+qed.
+
+lemma nosmt stepPiter_det ['l, 'e] step k1 k2 (s s1' s2': ('l,'e) APIst):
+ 0 <= k1 =>
+ 0 <= k2 =>
+ stepPiter step k1 s = Some s1' =>
+ callSt s1' <> None =>
+ stepPiter step k2 s = Some s2' =>
+ callSt s2' <> None =>
+ k1 = k2.
+proof.
+move => *.
+case: (k1=k2) => // E.
+case: (k1 < k2) => Hlt.
+ move: (stepPiter_lt step k2 k1 s s1' _ _ _); first 3 smt().
+ move: (callSt_stepPiter step k1 _ H2) => [?|?].
+  move: H1; rewrite (_:k1=0) 1:/# stepPiter0 // => /someI ?.
+  smt(callSt_stepPiter).
+ smt(callSt_stepPiter).
+move: (stepPiter_lt step k1 k2 s s2' _ _ _); first 3 smt().
+move: (callSt_stepPiter step k2 _ H4) => [?|?].
+ move: H3; rewrite (_:k2=0) 1:/# stepPiter0 // => /someI ?.
+ smt(callSt_stepPiter).
+smt(callSt_stepPiter).
+qed.
  
 end SinglePartyAPISemantics.

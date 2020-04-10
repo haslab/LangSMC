@@ -3,19 +3,77 @@ require import AllCore List SmtMap Distr IntExtra IntDiv DMap FSet.
 require import ALanguage ASecretSharingScheme AProtocolLibrary AAPI ASPSemantics AMPSemantics.
 require import MPCProtocolLibrary ProtocolAPI SPAPISemantics MPAPISemantics.
 require import MPProtocolAPISemantics.
+require import Utils.
+
+import SS.
+import MPCLib.
+import MPCAPI.
 
 theory Security.
 
-clone import Language.
+clone import Language as L.
 
 clone import MultiPartyProtocolAPISemantics with
- type L1.L = L,
- type L2.L = L,
- type L3.L = L.
-import ProtocolAPI.
+  type L1.L = L,
+  type L2.L = L,
+  type L3.L = L.
+import MultiPartyAPISemantics.
+
+(*import ProtocolAPI.
 import ProtocolLibrary.
 import SecretSharingScheme.
-import MultiPartyAPISemantics.
+import MultiPartyAPISemantics.*)
+
+(*clone import SinglePartyAPISemantics as IdealSemantics with
+theory Language <- L1,
+type API.public_t = MPCAPI.API.public_t,
+type API.inputs_t = MPCAPI.API.inputs_t,
+type API.outputs_t = MPCAPI.API.outputs_t,
+type API.svar_t = MPCAPI.API.svar_t,
+type API.sop_t = MPCAPI.API.sop_t,
+type API.sideInfo_t = MPCAPI.API.sideInfo_t,
+type API.apiCall_data = MPCAPI.API.apiCall_data,
+type API.apiRes_data = MPCAPI.API.apiRes_data,
+type API.apiCallRes = MPCAPI.API.apiCallRes,
+op API.apiCall = MPCAPI.API.apiCall,
+op API.apiRes = MPCAPI.API.apiRes,
+op updRes (x: apiRes_data option) (st: ('a,'b) APIst) = (omap ApiRes x, st.`2),
+op st_from_step (x: ('a,'b) ECall) = (omap ApiCall x.`1, (x.`2.`1, x.`2.`2)),
+type EnvL = SemP1.EnvL,
+op stepL = SemP1.stepL,
+op initStateL = SemP1.initStateL,
+type SinglePartySemantics.output_event_t = MultiPartySemantics.output_event_t.*)
+
+import API.
+
+print MultiPartyProtocolAPISemantics.MultiPartyAPISemantics.API.apiCall.
+
+
+
+print MPCAPI.apiCall.
+
+
+clone import SinglePartyAPISemantics as IdealSemantics with
+theory Language <- L1,
+type API.public_t = public_t,
+type API.inputs_t = inputs_t,
+type API.outputs_t = outputs_t,
+type API.svar_t = svar_t,
+type API.sop_t = sop_t,
+type API.sideInfo_t = sideInfo_t,
+type API.apiCall_data = apiCall_data,
+type API.apiRes_data = apiRes_data,
+type API.apiCallRes = apiCallRes,
+op API.apiCall = MPCAPI.apiCall,
+op API.apiRes = MPCAPI.apiRes,
+op updRes (x: apiRes_data option) (st: ('a,'b) APIst) = (omap ApiRes x, st.`2),
+op st_from_step (x: ('a,'b) ECall) = (omap ApiCall x.`1, (x.`2.`1, x.`2.`2)),
+type EnvL = SemP1.EnvL,
+op stepL = SemP1.stepL,
+op initStateL = SemP1.initStateL,
+type SinglePartySemantics.output_event_t = MultiPartySemantics.output_event_t.
+
+(*MPCAPI.API.
 
 clone import SinglePartyAPISemantics as IdealSemantics with
 theory Language <- L1,
@@ -35,9 +93,9 @@ op st_from_step (x: ('a,'b) ECall) = (omap ApiCall x.`1, (x.`2.`1, x.`2.`2)),
 type EnvL = SemP1.EnvL,
 op stepL = SemP1.stepL,
 op initStateL = SemP1.initStateL,
-type SinglePartySemantics.output_event_t = MultiPartySemantics.output_event_t.
+type SinglePartySemantics.output_event_t = MultiPartySemantics.output_event_t.*)
 
-module IdealFunctionality (API : IdealSemantics.API.API_t) = {
+module IdealFunctionality (API : MPCAPI.API.API_t) = {
 
    var st : configuration_t
 
@@ -114,9 +172,6 @@ module IdealFunctionality (API : IdealSemantics.API.API_t) = {
    }
  }.
 
-import SecretSharingScheme.
-import MPCProtocolLibrary.
-
 module API_Ideal : IdealSemantics.API.API_t = {
   var senv: (svar_t, value_t) fmap
   proc init(): unit = {
@@ -149,7 +204,7 @@ module API_Ideal : IdealSemantics.API.API_t = {
     var y, l, r;
      r <- None;
      if (forall x, x \in sargs /\ x \in senv) {
-       (y, l) <- MPCProtocolLibrary.sop_spec sop pargs (map (fun x => (oget senv.[x])) sargs);
+       (y, l) <- sop_spec sop pargs (map (fun x => (oget senv.[x])) sargs);
        senv <- senv.[ a <- y ];
        r <- Some {| leakage=l; trace=[]|};
      }
@@ -706,7 +761,7 @@ sp.
 elim* => *.
 exists* (map (fun x => oget API_Real.senv{1}.[x]) sargs).
 elim* => ?.
-exists* ((oget (Some (oget (Some {| leakage = snd (MPCProtocolLibrary.sop_spec sop pargs (map (fun (x0 : svar_t) => oget senv_R.[x0]) sargs)); trace = []; |})))).`leakage).
+exists* ((oget (Some (oget (Some {| leakage = snd (sop_spec sop pargs (map (fun (x0 : svar_t) => oget senv_R.[x0]) sargs)); trace = []; |})))).`leakage).
 elim* => ?.
 symmetry.
 call (assumption_sop o pargs f f0).
