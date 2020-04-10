@@ -208,7 +208,7 @@ module APIsec = {
 axiom assumption_declass aa ll:
  equiv [ APIsec.sim_declass ~ APIsec.prot_declass:
          aa = a{2} /\ ll = l{1} /\
-         take n a{2} = a{1} /\
+         take t a{2} = a{1} /\
          l{1} = LeakedValue (unshr a{2})
          ==>
          ={res} /\
@@ -218,7 +218,7 @@ axiom assumption_declass aa ll:
 axiom assumption_in ll:
  equiv [ APIsec.sim_in ~ APIsec.prot_in:
          ll = l{1} /\
-         l{1} = LeakedShares (take n a{2})
+         l{1} = LeakedShares (take t a{2})
          ==>
          ={res} /\ res{2}.`leakage = Some ll
        ].
@@ -229,9 +229,10 @@ axiom assumption_sop oo pp aa ll:
          aa = sargs{2} /\ 
          ll = l{1} /\
          l{1} = (sop_spec oo pp (map unshr aa)).`2 /\
-         map (take n) sargs{2} = sargs{1}
+         map (take t) sargs{2} = sargs{1}
          ==>
-         ={res} /\
+        res{1}.`1 = take t res{2}.`1 /\
+        res{1}.`2 = res{2}.`2 /\
          unshr res{2}.`1 = (sop_spec oo pp (map unshr aa)).`1 /\
          res{2}.`2.`leakage = ll
        ].
@@ -239,8 +240,12 @@ axiom assumption_sop oo pp aa ll:
 (* the security notion for [prot_out] is stronger than for the
  remaining protocolos. The assumption resorts to an auxiliary
  procedure.                                                    *) 
-axiom assumption_out:
+(*axiom assumption_out:
  equiv [ APIsec.spec_out ~ APIsec.prot_out:
-         ={a} ==> ={res} ].
+         ={a} ==> ={res} ].*)
+axiom assumption_out yy :
+  equiv [ APIsec.sim_out ~ APIsec.prot_out : 
+           yy \in nshr n (unshr a{2}) /\ a{1} = take t a{2} /\ l{1} = LeakedShares (take t yy) ==>
+           res{2}.`1 = yy /\ res{1} = res{2}.`2].
 
 end MPCProtocolLibrary.

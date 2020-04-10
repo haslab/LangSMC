@@ -89,7 +89,13 @@ theory MultiPartyProtocolAPISemantics.
     type API.apiRes_data = apiRes_data,
     type API.apiCallRes = apiCallRes,
     op API.apiCall = ProtocolAPI.apiCall,
-    op API.apiRes = ProtocolAPI.apiRes.
+    op API.apiRes = ProtocolAPI.apiRes,
+    op SemP1.updRes (x: apiRes_data option) (st: ('a,'b) APIst) = (omap ApiRes x, st.`2),
+    op SemP1.st_from_step (x: ('a,'b) ECall) = (omap ApiCall x.`1, (x.`2.`1, x.`2.`2)),
+    op SemP2.updRes (x: apiRes_data option) (st: ('a,'b) APIst) = (omap ApiRes x, st.`2),
+    op SemP2.st_from_step (x: ('a,'b) ECall) = (omap ApiCall x.`1, (x.`2.`1, x.`2.`2)),
+    op SemP3.updRes (x: apiRes_data option) (st: ('a,'b) APIst) = (omap ApiRes x, st.`2),
+    op SemP3.st_from_step (x: ('a,'b) ECall) = (omap ApiCall x.`1, (x.`2.`1, x.`2.`2)).
   import API.
   import MultiPartySemantics.
 
