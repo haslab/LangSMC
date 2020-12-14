@@ -1,11 +1,11 @@
 Single-party semantics
 ========================
 
-The single-pary semantics class is parameterised by a language and
+The single-pary semantics class is parameterised by a language ``L`` and
 should establish how programs written in that language are animated as
 if they were being executed in a idealized way by a TTP.
 
-Our sigle-party semantics formalization is based on adversarial code,
+Our single-party semantics formalization is based on adversarial code,
 influenced by the UC model. Program evaluation is managed
 by an *environment*, that can provide inputs to the program
 being interpreted and also collect outputs at any time.
@@ -74,9 +74,8 @@ Adversary interface
 -------------------------
 
 The adversary semantics interface specifies how the adversary
-interacts with the program evaluation. It discloses 2 procedures: 
-- ``stepP(id)`` - locally executes party ``id``
-- ``stepS`` - performs a synchronised execution of the entire set of parties
+interacts with the program evaluation. It discloses 1 procedures: 
+- ``step()`` - evaluates an instruction of the program
 
 ::
 
