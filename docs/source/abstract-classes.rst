@@ -43,7 +43,7 @@ Note that we do not provide an explicit distinction between secret and
 public operators, as the latter can be defined as program statements
 without loss of generality. Moreover, note that our language
 abstraction does not impose any restriction on the programs it
-tolerates, as languages are abstracted via a single type *L*. 
+tolerates, as languages are abstracted via a single type ``L``. 
 
 Secret sharing scheme construction
 ------------------------------------
@@ -91,9 +91,9 @@ Unshares a shared value::
 The sharing algorithm is classically defined as a probabilistic
 algorithm, a condition required in order to ensure the security of the
 operation. We model such probabilistic behaviour by encapsulating the
-*nshr* operator around the EasyCrypt special distribution type
-*distr*. Informally, this means that sharing some value is essentially
+``nshr`` operator around the EasyCrypt special distribution type
+``distr``. Informally, this means that sharing some value is essentially
 sampling from a distribution space containing all possible sharings
 of the value one intends to share. Note that the reconstruction
-operator *unshr* is a deterministic operator, as it must successfully
+operator ``unshr`` is a deterministic operator, as it must successfully
 reconstruct some value without requiring any secret information.
