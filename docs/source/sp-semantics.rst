@@ -3,9 +3,9 @@ Single-party semantics
 
 The single-pary semantics class is parameterised by a language ``L`` and
 should establish how programs written in that language are animated as
-if they were being executed in a idealized way by a TTP.
+if they were being executed in a idealised way by a TTP.
 
-Our single-party semantics formalization is based on adversarial code,
+Our single-party semantics formalisation is based on adversarial code,
 influenced by the UC model. Program evaluation is managed
 by an *environment*, that can provide inputs to the program
 being interpreted and also collect outputs at any time.
@@ -17,10 +17,10 @@ execution.
 
 The *adversary* has the possibility of requesting the execution of one
 program statement at a time. The semantics also contemplates the
-possiblity of some side information ``sideInfo_t`` being leaked by the execution of
+possibility of some side information ``sideInfo_t`` being leaked by the execution of
 language instructions.
 
-Our EasyCrypt single-party semantics formalization is based on the
+Our EasyCrypt single-party semantics formalisation is based on the
 EasyCrypt's module system, that allows the definition of *signature
 types* for procedures by using *module type* EasyCrypt structure.
 
@@ -62,7 +62,7 @@ interacts with the program evaluation. It discloses 3 procedures:
 The environment has oracle access to the environment semantics
 interface in order to animate some program via the ``animate``
 procedure. To represent the output of some program animation, we
-enrich the formalization with a special ``output_event_t`` type.
+enrich the formalisation with a special ``output_event_t`` type.
 
 ::
 
@@ -101,10 +101,10 @@ general evaluation strategy that executes any given program and that
 ends with the output event that is verified by the *environment*.
 
 We start by specifying a concrete implementation of the *environment*
-semantics oracle that is parameterized by the concrete semantics of
+semantics oracle that is parameterised by the concrete semantics of
 the program and by an adversary. This new module
 ``EnvironmentSemanticsInterface`` essentially defines all possible
-*enviornment* operations based on the concrete semantics of the
+*environment* operations based on the concrete semantics of the
 program and based on the evaluation strategies disclosed by the
 adversary.
 
@@ -131,7 +131,7 @@ adversary.
 
 Finally, a program can be computed according to the generic procedure
 displayed bellow. It takes as input a program written in any language
-``L``, initializes the semantics module with the concrete program and
+``L``, initialises the semantics module with the concrete program and
 then proceeds with the concrete program execution. It adopts as output
 the same output given to by the *environment*.
 

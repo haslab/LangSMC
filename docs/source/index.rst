@@ -3,10 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-LangSMC documentation!
+LangSMC documentation
 ===================================
 
-**LangSMC** is a formalization effort whose goal is to machine-check
+**LangSMC** is a formalisation effort whose goal is to machine-check
 the connection between verified compilation and cryptographic security
 that is verified inside secure multiparty computation (SMC)
 frameworks. The documentation here displayed can be matched to the
@@ -47,10 +47,10 @@ trusted third-party (TTP). SMC tool-chains usually provide implementations
 of the semantics of these ideal-world libraries that developers can use
 to animate and debug their high-level computation specifications.
 
-The role of the framework is then to compile such idealized specifications
+The role of the framework is then to compile such idealised specifications
 into framework-specific executable code for the various parties.
 This code will orchestrate calls to a distributed static library that
-implements low-level SMC protocols for each of the operations idealized,
+implements low-level SMC protocols for each of the operations idealised,
 and thus allow the different parties to collaboratively carry out the computation
 over secret-shared data.Conceptually, such frameworks are carrying out two types of
 transformations:
@@ -93,7 +93,7 @@ framework in that we allow for low-level protocols to offer only
 a weak form of security known as *privacy*, but still require the 
 full protocol to be secure in a standard UC sense. This allows our
 framework to preserve the strong composition guarantees ensured by
-protocols shown to be UC secure. Moreover, our execution model implicitly assumes global synchronization 
+protocols shown to be UC secure. Moreover, our execution model implicitly assumes global synchronisation 
 points between computing  parties when executing low-level protocols. In this 
 first step we also limit our  attention to passive security and static corruptions.
 

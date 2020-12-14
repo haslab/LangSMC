@@ -1,9 +1,9 @@
 Abstract components
 ============================
 
-Our formalization makes use of some abstract definitions for general
+Our formalisation makes use of some abstract definitions for general
 purpose components that are required by our proof. These include an
-abstract formalization of a programming language and of a secret
+abstract formalisation of a programming language and of a secret
 sharing scheme. These two constructions are purposely left abstract in
 order to demonstrate the modularity of our proof, capable of
 supporting any programming language and any instantiation of a secret

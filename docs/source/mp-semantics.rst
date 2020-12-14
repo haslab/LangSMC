@@ -4,14 +4,14 @@ Multi-party semantics
 The multi-party semantics class establishes how a program can
 be collaboratively animated. We define the multi-party semantics
 assuming that program evaluation is carried out by three computing
-nodes, each one holding a description of the program in pottentially
+nodes, each one holding a description of the program in potentially
 different languages ``L1``, ``L2`` and ``L3``. We restrict the multi-party semantics
 to only three parties due to tool limitations. Nevertheless,
 having a three-party set is explanatory enough to demonstrate
 the concepts we want to explore in this work and the definitions
 here presented can be easily extended to other party configurations.
 
-Our multi-party semantics formalization is based on adversarial code,
+Our multi-party semantics formalisation is based on adversarial code,
 influenced by the UC model. Program evaluation is managed
 by an *environment*, that can provide inputs to the program
 being interpreted and also collect outputs at any time.
@@ -26,7 +26,7 @@ execution or a synchronised execution, where all parties, executing
 at the same time, have the ability to perform distributed protocols
 that require party interaction.
 
-Finally, the semantics here specified contemplates the possiblity
+Finally, the semantics here specified contemplates the possibility
 of the execution disclosing the communication trace that
 is left by operations that result from the collaboration of parties.
 
@@ -35,7 +35,7 @@ Semantics interface
 
 The semantics interface discloses 6 procedures:
 * ``init(P)`` - initialises the evaluation with initial program P
-* ``stepP(id)`` - localy executes party ``id``.
+* ``stepP(id)`` - locally executes party ``id``.
 * ``stepS`` - executes the entire set of
 parties at the same time. This procedure should be used to perform
 operations that require party synchronisation.
@@ -53,7 +53,7 @@ operations that require party synchronisation.
   }.
 
 We enforce that the only procedure inside the multi-party semantics
-that is able to generate visible side information is the synchronized
+that is able to generate visible side information is the synchronised
 ``stepS`` method. Local party execution modeled by ``stepP`` does not
 encompass any visible information, as it simply computes some local
 operation.
@@ -78,7 +78,7 @@ interacts with the program evaluation. It discloses 3 procedures:
 The environment has oracle access to the environment semantics
 interface in order to animate some program via the ``animate``
 procedure. To represent the output of some program animation, we
-enrich the formalization with a special ``output_event_t`` type.
+enrich the formalisation with a special ``output_event_t`` type.
 
 ::
 
@@ -119,10 +119,10 @@ general evaluation strategy that executes any given program and that
 ends with the output event that is verified by the *environment*.
 
 We start by specifying a concrete implementation of the *environment*
-semantics oracle that is parameterized by the concrete semantics of
+semantics oracle that is parameterised by the concrete semantics of
 the program and by an adversary. This new module
 ``EnvironmentSemanticsInterface`` essentially defines all possible
-*enviornment* operations based on the concrete semantics of the
+*environment* operations based on the concrete semantics of the
 program and based on the evaluation strategies disclosed by the
 adversary.
 
@@ -150,7 +150,7 @@ adversary.
 
 Finally, a program can be computed according to the generic procedure
 displayed bellow. It takes as input 3 programs written in languages
-``L1``, ``L2`` and ``L3``, initializes the local semantics module of
+``L1``, ``L2`` and ``L3``, initialises the local semantics module of
 each party with the respective program and
 then proceeds with the concrete program execution. It adopts as output
 the same output given to by the *environment*.
