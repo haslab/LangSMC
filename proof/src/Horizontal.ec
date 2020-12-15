@@ -19,6 +19,8 @@ clone import MultiPartyProtocolAPISemantics as Source with
  type L3.L = L,
   type MultiPartyAPISemantics.SemP2.EnvL = MultiPartyAPISemantics.SemP1.EnvL,
   type MultiPartyAPISemantics.SemP3.EnvL = MultiPartyAPISemantics.SemP1.EnvL,
+  op MultiPartyAPISemantics.SemP2.initStateL = MultiPartyAPISemantics.SemP1.initStateL,
+  op MultiPartyAPISemantics.SemP3.initStateL = MultiPartyAPISemantics.SemP1.initStateL,
   op MultiPartyAPISemantics.SemP2.stepL = MultiPartyAPISemantics.SemP1.stepL,
   op MultiPartyAPISemantics.SemP3.stepL = MultiPartyAPISemantics.SemP1.stepL,
   op MultiPartyAPISemantics.SemP2.stepPiter = MultiPartyAPISemantics.SemP1.stepPiter,
@@ -184,8 +186,9 @@ clone import Language as L3'.
 clone import MultiPartyProtocolAPISemantics as Target with
   type L1.L = L1'.L,
   type L2.L = L2'.L,
-  type L3.L = L3'.L
-rename "MultiPartyAPISemantics.GlobalSt" as "TGlobalSt".
+  type L3.L = L3'.L,
+  type MultiPartyAPISemantics.MultiPartySemantics.output_event_t = output_event_t.
+
 (*import MultiPartyAPISemantics.
 import MultiPartySemantics.*)
 
@@ -350,14 +353,34 @@ qed.
 module RealSemMT = Target.ProgSem(API_Real).
 module RealSem = Source.ProgSem(API_Real).
 
-module AdvOrclMT (Sem: AdvSemInterface) : AdvSemInterface = {
+print Source.ProgSem.
+
+module AdvOrclMT (Sem: Source.MultiPartyAPISemantics.MultiPartySemantics.AdvSemInterface) : Source.MultiPartyAPISemantics.MultiPartySemantics.AdvSemInterface = {
   (* Simulator runs a local copy of all parties... *)
   module SemEmu = RealSemMT
-  include SemEmu [- init, stepP, stepS]
+  include SemEmu [- init, stepP, stepS, setInput, getOutput]
 
-  proc init(P1:L1.L, P2:L2.L, P3:L3.L): unit = {
-    SemEmu.init(P1,P2,P3);
+  proc init(P1:Source.L1.L, P2:Source.L2.L, P3:Source.L3.L): unit = {
+    RealSem.init(P1,P2,P3);
+    SemEmu.init(compiler1 P1, compiler2 P2, compiler3 P3);
   }
+
+    proc setInput (x: L3.inputs_t): bool = {
+      var r;
+      (*r <@ SemEmu.setInput(x);
+      if (r) { RealSem.setInput(x); }*)
+r <@ RealSem.setInput(x);
+      return r;
+    }
+
+    proc getOutput (): L3.secret_t option = {
+      var r;
+   (*r <@ SemEmu.getOutput();
+    if (r <> None) RealSem.getOutput();*)
+r <@ RealSem.getOutput();
+   return r;
+    }
+
   (* [stepP] relies on the local [RealSemMT] module in order to
      control the execution of each party.
      It leaves [Sem] untouched *)
@@ -366,9 +389,9 @@ module AdvOrclMT (Sem: AdvSemInterface) : AdvSemInterface = {
   proc stepS(): sideInfo_t option = {
     var b, i, v;
     var r <- None;
-    var ecall <- Target.syncPoint (Target.MultiPartyAPISemantics.SemP1.callSt (Target.MultiPartyAPISemantics.StP1 SemEmu.st),
-                            Target.MultiPartyAPISemantics.SemP2.callSt (Target.MultiPartyAPISemantics.StP2 SemEmu.st),
-                            Target.MultiPartyAPISemantics.SemP3.callSt (Target.MultiPartyAPISemantics.StP3 SemEmu.st));
+    var ecall <- Source.syncPoint (Source.MultiPartyAPISemantics.SemP1.callSt (Target.MultiPartyAPISemantics.StP1 SemEmu.st),
+                            Source.MultiPartyAPISemantics.SemP2.callSt (Target.MultiPartyAPISemantics.StP2 SemEmu.st),
+                            Source.MultiPartyAPISemantics.SemP3.callSt (Target.MultiPartyAPISemantics.StP3 SemEmu.st));
     if (ecall <> None) { (* call to the API *)
       (* advance the source into a sync-point *)
       i <- 0;
@@ -402,8 +425,8 @@ module AdvOrclMT (Sem: AdvSemInterface) : AdvSemInterface = {
 
 section MTSecurityProof.
 
-declare module A: Adversary{ProgSem, ProgSem, AdvOrclMT}.
-declare module Z: Environment{A, API_Real, ProgSem, AdvOrclMT}.
+declare module A: Adversary{ProgSem, ProgSem, AdvOrclMT, Source.ProgSem}.
+declare module Z: Environment{A, API_Real, ProgSem, AdvOrclMT, Source.ProgSem}.
 
 op inv (stMT1 stMT2: Target.MultiPartyAPISemantics.GlobalSt) (stST2: Source.MultiPartyAPISemantics.GlobalSt) =
  stMT2.`Target.MultiPartyAPISemantics.StP1 = stMT1.`Target.MultiPartyAPISemantics.StP1 /\
@@ -472,7 +495,7 @@ proof.
 rewrite fun_ext /(==) => ? /#.
 qed.
 
-lemma test k i f ss :
+lemma stepPiter_lt_Some k i f ss :
   0 <= i =>
   0 <= k =>
   i < k =>
@@ -651,7 +674,7 @@ smt().
 
 move => <-.
 rewrite -some_oget.
-smt(test).
+smt(stepPiter_lt_Some).
 done.
 
 move: H; rewrite /inv;
@@ -690,7 +713,7 @@ rewrite /b2i H17 /=.
 move => *.
 rewrite SemP1.stepPiterS 1:/#.
 cut -> : SemP1.stepPiter SemP1.stepL i{hr} ss = Some (Source.ProgSem.st{hr}.`StP1).
-smt(test).
+smt(stepPiter_lt_Some).
 smt().
 rewrite H15 H16.
 rewrite /stepPiter.
@@ -702,7 +725,7 @@ simplify.
 rewrite /b2i /=.
 have hloop3 : Source.MultiPartyAPISemantics.SemP3.stepPiter Source.MultiPartyAPISemantics.SemP3.stepL 1 Source.ProgSem.st{hr}.`StP3 <> None.
 have ? : SemP1.stepPiter SemP1.stepL i{hr} ss = Some (Source.ProgSem.st{hr}.`StP1).
-smt(test).
+smt(stepPiter_lt_Some).
 cut ->: SemP3.stepPiter = SemP1.stepPiter. smt().
 cut ->: SemP3.stepL = SemP1.stepL. smt().
 cut ->: Source.ProgSem.st{hr}.`StP3 = Source.ProgSem.st{hr}.`StP1. smt().
@@ -831,112 +854,126 @@ smt.
 smt.
 qed.
 
+(*local module EnvironmentSemanticsInterface1 (Sem : Source.MultiPartyAPISemantics.MultiPartySemantics.Semantics) (A : Adversary) = {
+ include Sem [-init, setInput, getOutput]
+ proc init(P1 : Source.L1.L, P2 : Source.L2.L, P3 : Source.L3.L) : unit = {
+   Sem.init(P1,P2,P3);
+ }
+  proc setInput (x: L3.secret_t): bool = {
+    var r;
+    r <@ Sem.setInput(x);
+    if (r) IdealSem.setInput(x);
+    return r;
+ }
+ proc getOutput(): L3.secret_t option = {
+   var r;
+   r <@ Sem.getOutput();
+    if (r <> None) IdealSem.getOutput();
+   return r;
+ }
+ proc activate(): sideInfo_t option = {
+   var r;
+   r <@ A(Simulator(ISem)).step();
+   return r;
+ }
+}.
+
+  module EnvironmentSemanticsInterface (Sem : Semantics) (A : Adversary) = {
+    include Sem [-init, setInput, getOutput]
+    proc init = Sem.init
+    proc setInput (x: secret_t): bool = {
+      var r;
+      r <@ Sem.setInput(x);
+      return r;
+    }
+    proc getOutput(): secret_t option = {
+      var r;
+      r <@ Sem.getOutput();
+      return r;
+    }
+    proc activate(): sideInfo_t option = {
+      var r;
+      r <@ A(Sem).step();
+      return r;
+    }
+  }.*)
+
 equiv SecurityMT:
- Eval(RealSem,Z,A).eval ~ REAL(Z, AdvMT(A)).game
- : ={P, glob A, glob Z} ==> ={res}.
+ Target.MultiPartyAPISemantics.MultiPartySemantics.Eval(RealSemMT,Z,A).eval ~ 
+ Source.MultiPartyAPISemantics.MultiPartySemantics.Eval(AdvOrclMT(RealSem), Z, A).eval
+ : ={glob A, glob Z} /\ P1{2} = P2{2} /\ P2{2} = P3{2} /\ P1{1} = compiler1 P1{2} /\ P2{1} = compiler2 P2{2} /\ P3{1} = compiler3 P3{2} ==> ={res}.
 proof.
 proc.
+
+
 call (_: ={glob A, API_Real.senv} /\
-         inv ProgSemMT.st{1} ProgSemMT.st{2} ProgSem.st{2}
+         inv Target.ProgSem.st{1} Target.ProgSem.st{2} Source.ProgSem.st{2}
      ). 
 - (* setInput *)
-  by proc; inline*; wp; skip; progress; smt().
+  proc. 
+inline*; wp; skip; progress.
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+
 - (* getOutput *)
-  by proc; inline*; wp; skip; progress; smt().
+  proc. inline*. 
+wp; skip; progress.
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+smt(). 
+
 - (* activate *)
   proc; call (_: ={API_Real.senv} /\
-                 inv ProgSemMT.st{1} ProgSemMT.st{2} ProgSem.st{2}
+                 inv Target.ProgSem.st{1} Target.ProgSem.st{2} Source.ProgSem.st{2}
              ).
+
   + (* stepP *)
     by apply stepP_prop.
   + (* stepS *)
     by apply stepS_prop.
-    by skip; progress. 
-- inline*; call (_: ={API_Real.senv} /\
-                    inv ProgSemMT.st{1} ProgSemMT.st{2} ProgSem.st{2}
-                ).
-  by apply stepP_prop.
- by apply stepS_prop.
-wp; skip => /> *; progress.
-- rewrite /init_GlobalSt /= (_:3=1+1+1) 1:// !iotaS //= iota1 /=;
-  smt(get_setE).
-- rewrite /init_GlobalSt /= (_:3=1+1+1) 1:// !iotaS //= iota1 /=;
-  smt(get_setE).
-- rewrite /init_GlobalSt /= (_:3=1+1+1) 1:// !iotaS //= iota1 /=;
-  smt(get_setE).
-- rewrite /advStT; exists 0 (init_GlobalMTSt P{2}).`P1.
-  split; first done.
-  split; last by rewrite stepPiter0.
-  have ?:= (equivSt_init1 P{2}).
-  rewrite /init_GlobalSt /=  (_:3=1+1+1) 1:// !iotaS //= iota1 /=.
-  by rewrite !get_setE /#.
-- rewrite /advStT; exists 0 (init_GlobalMTSt P{2}).`P2.
-  split; first done.
-  split; last by rewrite stepPiter0.
-  have ?:= (equivSt_init2 P{2}).
-  rewrite /init_GlobalSt /=  (_:3=1+1+1) 1:// !iotaS //= iota1 /=.
-  by rewrite !get_setE /#.
-- rewrite /advStT; exists 0 (init_GlobalMTSt P{2}).`P3.
-  split; first done.
-  split; last by rewrite stepPiter0.
-  have ?:= (equivSt_init3 P{2}).
-  rewrite /init_GlobalSt /=  (_:3=1+1+1) 1:// !iotaS //= iota1 /=.
-  by rewrite !get_setE /#.
-qed.
+    skip; progress. 
+- inline*. wp; skip; progress.
 
-
-
-equiv SecurityMT:
- REAL_MT(Z, A).game ~ REAL(Z, AdvMT(A)).game
- : ={P, glob A, glob Z} ==> ={res}.
-proof.
-proc.
-call (_: ={glob A, API_Real.senv} /\
-         inv ProgSemMT.st{1} ProgSemMT.st{2} ProgSem.st{2}
-     ). 
-- (* setInput *)
-  by proc; inline*; wp; skip; progress; smt().
-- (* getOutput *)
-  by proc; inline*; wp; skip; progress; smt().
-- (* activate *)
-  proc; call (_: ={API_Real.senv} /\
-                 inv ProgSemMT.st{1} ProgSemMT.st{2} ProgSem.st{2}
-             ).
-  + (* stepP *)
-    by apply stepP_prop.
-  + (* stepS *)
-    by apply stepS_prop.
-    by skip; progress. 
-- inline*; call (_: ={API_Real.senv} /\
-                    inv ProgSemMT.st{1} ProgSemMT.st{2} ProgSem.st{2}
-                ).
-  by apply stepP_prop.
- by apply stepS_prop.
-wp; skip => /> *; progress.
-- rewrite /init_GlobalSt /= (_:3=1+1+1) 1:// !iotaS //= iota1 /=;
-  smt(get_setE).
-- rewrite /init_GlobalSt /= (_:3=1+1+1) 1:// !iotaS //= iota1 /=;
-  smt(get_setE).
-- rewrite /init_GlobalSt /= (_:3=1+1+1) 1:// !iotaS //= iota1 /=;
-  smt(get_setE).
-- rewrite /advStT; exists 0 (init_GlobalMTSt P{2}).`P1.
-  split; first done.
-  split; last by rewrite stepPiter0.
-  have ?:= (equivSt_init1 P{2}).
-  rewrite /init_GlobalSt /=  (_:3=1+1+1) 1:// !iotaS //= iota1 /=.
-  by rewrite !get_setE /#.
-- rewrite /advStT; exists 0 (init_GlobalMTSt P{2}).`P2.
-  split; first done.
-  split; last by rewrite stepPiter0.
-  have ?:= (equivSt_init2 P{2}).
-  rewrite /init_GlobalSt /=  (_:3=1+1+1) 1:// !iotaS //= iota1 /=.
-  by rewrite !get_setE /#.
-- rewrite /advStT; exists 0 (init_GlobalMTSt P{2}).`P3.
-  split; first done.
-  split; last by rewrite stepPiter0.
-  have ?:= (equivSt_init3 P{2}).
-  rewrite /init_GlobalSt /=  (_:3=1+1+1) 1:// !iotaS //= iota1 /=.
-  by rewrite !get_setE /#.
+smt. smt. smt.
 qed.
 
 end section MTSecurityProof.
