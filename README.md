@@ -9,10 +9,10 @@ In this work we review the role of these compilers and provide a formal treatmen
 
 We link the former to the setting of certified compilation, paving the way to leverage long-run efforts such as CompCert in future high-assurance SMC compilers. Security is framed in the standard cryptographic sense. This repository reports on the machine-checked formalisation of our results carried out in EasyCrypt, an interactive theorem prover for code-based cryptographic security proofs.
 
-## Repository organization
+## Repository organisation
 
 We disclose an image of the main EasyCrypt repository under the `easycrypt` submodule folder. 
-All EasyCrypt scripts that encompass our formalization can be found in the `proof/src` folder.
+All EasyCrypt scripts that encompass our formalisation can be found in the `proof/src` folder.
 
 ## Building the proof
 
@@ -29,7 +29,7 @@ Once all EasyCrypt installation requirements are installed, EasyCrypt can be loc
 
 ### Verifying the proof
 
-Finally, the formalization can be verified by typing 
+Finally, the formalisation can be verified by typing 
 
 `make check-proof`
 
@@ -37,4 +37,11 @@ which launches an EasyCrypt test script and applies it to all files that compris
 
 ## Proof documentation
 
-A comprehensive description of our EasyCrypt formalization can be found in http://langsmc.readthedocs.io. 
+A comprehensive description of our EasyCrypt formalisation can be found in http://langsmc.readthedocs.io.
+However, the documentation can be locally build using the command
+
+`make docs-[target]`
+
+where `target` can be either *html* or *latex*. This command will
+create the appropriate documentation files under the `docs/build`
+folder.
