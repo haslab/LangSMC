@@ -130,6 +130,10 @@ domains (LINK TO DOCUMENTATION SECTION vertical):
    sp-semantics
    mp-semantics
    secure-api
+   sp-api-semantics
+   mp-api-semantics
+   sp-protocol-api-semantics
+   mp-protocol-api-semantics
 
 
 
