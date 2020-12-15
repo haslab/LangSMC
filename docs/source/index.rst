@@ -12,7 +12,7 @@ that is verified inside secure multiparty computation (SMC)
 frameworks. The documentation here displayed can be matched to the
 formal definitions and results described in [link para o artigo eprint].
 
-Project introduction
+Project overview
 ==================================
 
 Secure multiparty computation (SMC) is a cryptographic technology
@@ -135,6 +135,8 @@ domains (LINK TO DOCUMENTATION SECTION vertical):
    protocol-api
    sp-protocol-api-semantics
    mp-protocol-api-semantics
+   vertical
+   horizontal
 
 
 
