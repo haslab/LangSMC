@@ -10,22 +10,6 @@ import MPCAPI.
 
 theory MultiPartyProtocolAPISemantics.
 
-  (*type partyId_t = partyId_t.
-
-  clone import SecretSharingScheme with
-    type partyId_t = partyId_t,
-    op n = 3,
-    op t = 1.
-
-  clone import MPCProtocolLibrary with
-    type SecretSharingScheme.partyId_t = partyId_t,
-    op SecretSharingScheme.n = 3,
-    op SecretSharingScheme.t = 1,
-    type SecretSharingScheme.value_t = value_t,
-    type SecretSharingScheme.share_t = share_t,
-    op SecretSharingScheme.nshr = nshr,
-    op SecretSharingScheme.unshr = unshr.*)
-
   (** Language L1 *)
   clone import Language as L1 with
     type public_t = value_t,
@@ -49,35 +33,6 @@ theory MultiPartyProtocolAPISemantics.
     type sop_t = sop_t,
     type inputs_t = sharedValue_t,
     type outputs_t = sharedValue_t.
-
-(*  clone import ProtocolLibrary with
-    op n = 3,
-    type partyId_t = partyId_t,
-    type value_t = public_t,
-    type inputs_t = secret_t,
-    type outputs_t = secret_t,
-    type sop_t = sop_t.*)
-
-  (*clone import ProtocolAPI with
-    op ProtocolLibrary.n = MPCProtocolLibrary.n,
-    type ProtocolLibrary.partyId_t = partyId_t,
-    type ProtocolLibrary.value_t = value_t,
-    type ProtocolLibrary.inputs_t = inputs_t,
-    type ProtocolLibrary.outputs_t = outputs_t,
-    type ProtocolLibrary.msg_data = msg_data,
-    type ProtocolLibrary.leakage_t = leakage_t,
-    type ProtocolLibrary.sideInfo_t = sideInfo_t,
-    type ProtocolLibrary.sop_t = sop_t,
-    op ProtocolLibrary.sop_spec = sop_spec,
-    op ProtocolLibrary.prot_declass = prot_declass,
-    op ProtocolLibrary.prot_in = prot_in,
-    op ProtocolLibrary.prot_out = prot_out,
-    op ProtocolLibrary.prot_sop = prot_sop,
-    op ProtocolLibrary.sim_declass = sim_declass,
-    op ProtocolLibrary.sim_in = sim_in,
-    op ProtocolLibrary.sim_out = sim_out,
-    op ProtocolLibrary.sim_sop = sim_sop.
-  import API.*)
 
   clone import MultiPartyAPISemantics with
     theory L1 <- L1,
@@ -139,23 +94,17 @@ theory MultiPartyProtocolAPISemantics.
                   newst1 <- SemP1.stepL (SemP1.progSt lst1) (SemP1.envSt lst1) (SemP1.resSt lst1);
                   if (newst1 <> None) {
                     r <- true;
-                    st <- upd_Sigma1 (oget newst1) st;
-                  }
-                } }
+                    st <- upd_Sigma1 (oget newst1) st; } } }
       | P2 => { if (SemP2.callSt lst2 = None) {
                   newst2 <- SemP2.stepL (SemP2.progSt lst2) (SemP2.envSt lst2) (SemP2.resSt lst2);
                   if (newst2 <> None) {
                     r <- true;
-                    st <- upd_Sigma2 (oget newst2) st;
-                  }
-                } }
+                    st <- upd_Sigma2 (oget newst2) st; } } }
       | P3 => { if (SemP3.callSt lst3 = None) {
                   newst3 <- SemP3.stepL (SemP3.progSt lst3) (SemP3.envSt lst3) (SemP3.resSt lst3);
                   if (newst3 <> None) {
                     r <- true;
-                    st <- upd_Sigma3 (oget newst3) st;
-                  }
-                } }
+                    st <- upd_Sigma3 (oget newst3) st; } } }
       end;
 
       return r;
@@ -174,36 +123,26 @@ theory MultiPartyProtocolAPISemantics.
                                 (v, tr) <- oget vto;
                                 r <- Some tr;
                                 (* updates API result *)
-                                st <- upd_SigmaAPI (Some v) st;
-                              }
-                            }
+                                st <- upd_SigmaAPI (Some v) st; } }
         | Call_in a => { if (ib st <> None) {
                            ato <@ API.input(a, oget (ib st));
                            if (ato <> None) {
                              tr <- oget ato;
                              r <- Some tr;
                              st <- upd_ib None st; (* clears buffer *)
-                             st <- upd_SigmaAPI None st; (* resets call *)
-                           }
-                         }
-                       }
+                             st <- upd_SigmaAPI None st; (* resets call *) } } }
         | Call_out a => { if (ob st = None) {
                             xto <@ API.output(a);
                             if (xto <> None) {
                               (x, tr) <- oget xto;
                               r <- Some tr;
                               st <- upd_ob (Some x) st; (* fills buffer *)
-                              st <- upd_SigmaAPI None st; (* resets call *)
-                            }
-                          }
-                        }
+                              st <- upd_SigmaAPI None st; (* resets call *) } } }
         | Call_sop o a pargs sargs => { ato <@ API.sop(o, pargs, sargs, a);
                                       if (ato <> None) {
                                         tr <- oget ato;
                                         r <- Some tr;
-                                        st <- upd_SigmaAPI None st; (* resets call *)
-                                      }
-                                    }
+                                        st <- upd_SigmaAPI None st; (* resets call *) } }
         end;
       }
       return r;

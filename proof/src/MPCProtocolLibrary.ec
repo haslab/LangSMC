@@ -102,6 +102,8 @@ theory MPCProtocolLibrary.
 
   (** Declassification protocol *)
   op [lossless] prot_declass(a: inputs_t): (value_t * sideInfo_t) distr.
+  axiom prot_declass_suppE (a: inputs_t) vto :
+    vto \in prot_declass a => leakage_value (oget vto.`2.`leakage) = Some vto.`1.
   (** Input protocol *)
   op [lossless] prot_in(inp: inputs_t): sideInfo_t distr.
   (** Output protocol *)
@@ -142,100 +144,83 @@ theory MPCProtocolLibrary.
     op sim_out = sim_out,
     op sim_sop = sim_sop
   proof *.
-  realize prot_declass_ll. by apply prot_declass_ll. qed.
-  realize prot_in_ll. by apply prot_in_ll. qed.
-  realize prot_out_ll. by apply prot_out_ll. qed.
-  realize prot_sop_ll. by apply prot_sop_ll. qed.
-  realize sim_declass_ll. by apply sim_declass_ll. qed.
-  realize sim_in_ll. by apply sim_in_ll. qed.
-  realize sim_out_ll. by apply sim_out_ll. qed.
-  realize sim_sop_ll. by apply sim_sop_ll. qed.
-    
+  realize prot_declass_ll by smt(prot_declass_ll).
+  realize prot_in_ll by smt(prot_in_ll).
+  realize prot_out_ll by smt(prot_out_ll).
+  realize prot_sop_ll by smt(prot_sop_ll).
+  realize sim_declass_ll by smt(sim_declass_ll).
+  realize sim_in_ll by smt(sim_in_ll).
+  realize sim_out_ll by smt(sim_out_ll).
+  realize sim_sop_ll by smt(sim_sop_ll).
+
   (* Correctness and Security Assumptions are captured by
   adequate pRHL assertions                                   *)
-module APIsec = {
- proc prot_declass(a: sharedValue_t): value_t * sideInfo_t = {
-    var x;
-    x <$ prot_declass a;
-    return x;
- }
- proc sim_declass(a: inputs_t, l: leakage_t): value_t * sideInfo_t = {
-   var t;
-   t <$ sim_declass a l;
-   return (oget (leakage_value l), Trace (Some l) t);
- }
- proc prot_in(a: sharedValue_t): sideInfo_t = {
-   var x;
-   x <$ prot_in a;
-   return x;
- }
- proc sim_in(l: leakage_t): sideInfo_t = {
-   var x;
-   x <$ sim_in l;
-   return Trace (Some l) x;
- }
- proc prot_out(a: sharedValue_t): sharedValue_t * sideInfo_t = {
-   var x;
-   x <$ prot_out a;
-   return x;
- }
- proc sim_out(a: sharedValue_t, l: leakage_t): sideInfo_t = {
-   var t;
-   t <$ sim_out a l;
-   return Trace (Some l) t;
- }
- proc spec_out(a: sharedValue_t): sharedValue_t * sideInfo_t = {
-   var x, y, l, tr;
-   x <$ nshr n (unshr a);
-   y <- take t x;
-   l <- LeakedShares y;
-   tr <@ sim_out (take t a, l);
-   return (x, tr);
- }
- proc prot_sop(o: sop_t, pargs: value_t list, sargs: sharedValue_t list): sharedValue_t * sideInfo_t = {
-   var x;
-   x <$ prot_sop o pargs sargs;
-   return x;
- }
- proc sim_sop(o: sop_t, pargs: value_t list, sargs: sharedValue_t list, l: leakage_t option): sharedValue_t * sideInfo_t = {
-   var x,t;
-   (x,t) <$ sim_sop o pargs sargs l;
-   return (x, Trace l t);
- }
+  module APIsec = {
+    proc prot_declass(a: sharedValue_t): value_t * sideInfo_t = {
+      var x;
+      x <$ prot_declass a;
+      return x;
+    }
+    proc sim_declass(a: inputs_t, l: leakage_t): value_t * sideInfo_t = {
+      var t;
+      t <$ sim_declass a l;
+      return (oget (leakage_value l), Trace (Some l) t);
+    }
+    proc prot_in(a: sharedValue_t): sideInfo_t = {
+      var x;
+      x <$ prot_in a;
+      return x;
+    }
+    proc sim_in(l: leakage_t): sideInfo_t = {
+      var x;
+      x <$ sim_in l;
+      return Trace (Some l) x;
+    }
+    proc prot_out(a: sharedValue_t): sharedValue_t * sideInfo_t = {
+      var x;
+      x <$ prot_out a;
+      return x;
+    }
+    proc sim_out(a: sharedValue_t, l: leakage_t): sideInfo_t = {
+      var t;
+      t <$ sim_out a l;
+      return Trace (Some l) t;
+    }
+    proc spec_out(a: sharedValue_t): sharedValue_t * sideInfo_t = {
+      var x, y, l, tr;
+      x <$ nshr n (unshr a);
+      y <- take t x;
+      l <- LeakedShares y;
+      tr <@ sim_out (take t a, l);
+      return (x, tr);
+    }
+    proc prot_sop(o: sop_t, pargs: value_t list, sargs: sharedValue_t list): sharedValue_t * sideInfo_t = {
+      var x;
+      x <$ prot_sop o pargs sargs;
+      return x;
+    }
+    proc sim_sop(o: sop_t, pargs: value_t list, sargs: sharedValue_t list, l: leakage_t option): sharedValue_t * sideInfo_t = {
+      var x,t;
+      (x,t) <$ sim_sop o pargs sargs l;
+      return (x, Trace l t);
+    }
+  }.
 
-}.
+  axiom assumption_declass aa ll:
+    equiv [ APIsec.sim_declass ~ APIsec.prot_declass:
+            aa = a{2} /\ ll = l{1} /\ take t a{2} = a{1} /\ l{1} = LeakedValue (unshr a{2})
+            ==> ={res} /\ res{2}.`1 = unshr aa /\ res{2}.`2.`leakage = Some ll ].
 
-axiom assumption_declass aa ll:
- equiv [ APIsec.sim_declass ~ APIsec.prot_declass:
-         aa = a{2} /\ ll = l{1} /\
-         take t a{2} = a{1} /\
-         l{1} = LeakedValue (unshr a{2})
-         ==>
-         ={res} /\
-         res{2}.`1 = unshr aa /\ res{2}.`2.`leakage = Some ll
-       ].
+  axiom assumption_in ll:
+    equiv [ APIsec.sim_in ~ APIsec.prot_in: ll = l{1} /\ l{1} = LeakedShares (take t a{2})
+                                            ==> ={res} /\ res{2}.`leakage = Some ll ].
 
-axiom assumption_in ll:
- equiv [ APIsec.sim_in ~ APIsec.prot_in:
-         ll = l{1} /\
-         l{1} = LeakedShares (take t a{2})
-         ==>
-         ={res} /\ res{2}.`leakage = Some ll
-       ].
-
-axiom assumption_sop oo pp aa ll:
- equiv [ APIsec.sim_sop ~ APIsec.prot_sop:
-         ={o, pargs} /\
-         aa = sargs{2} /\ 
-         ll = l{1} /\
-         l{1} = (sop_spec oo pp (map unshr aa)).`2 /\
-         map (take t) sargs{2} = sargs{1}
-         ==>
-        res{1}.`1 = take t res{2}.`1 /\
-        res{1}.`2 = res{2}.`2 /\
-         unshr res{2}.`1 = (sop_spec oo pp (map unshr aa)).`1 /\
-         res{2}.`2.`leakage = ll
-       ].
+  axiom assumption_sop oo pp aa ll:
+   equiv [ APIsec.sim_sop ~ APIsec.prot_sop: ={o, pargs} /\ aa = sargs{2} /\ ll = l{1} /\
+           l{1} = (sop_spec oo pp (map unshr aa)).`2 /\ map (take t) sargs{2} = sargs{1}
+           ==> res{1}.`1 = take t res{2}.`1 /\ res{1}.`2 = res{2}.`2 /\
+               unshr res{2}.`1 = (sop_spec oo pp (map unshr aa)).`1 /\
+               res{2}.`2.`leakage = ll ].
 
 (* the security notion for [prot_out] is stronger than for the
  remaining protocolos. The assumption resorts to an auxiliary
@@ -243,8 +228,8 @@ axiom assumption_sop oo pp aa ll:
 (*axiom assumption_out:
  equiv [ APIsec.spec_out ~ APIsec.prot_out:
          ={a} ==> ={res} ].*)
-axiom assumption_out yy :
-  equiv [ APIsec.sim_out ~ APIsec.prot_out : 
+  axiom assumption_out yy :
+    equiv [ APIsec.sim_out ~ APIsec.prot_out : 
            yy \in nshr n (unshr a{2}) /\ a{1} = take t a{2} /\ l{1} = LeakedShares (take t yy) ==>
            res{2}.`1 = yy /\ res{1} = res{2}.`2].
 

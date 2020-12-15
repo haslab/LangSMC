@@ -34,20 +34,10 @@ theory MultiPartyAPISemantics.
   clone import Language as L1.
 
   (** Language L2 *)
-  clone import Language as L2. (*with
-    type public_t = public_t,
-    type secret_t = secret_t,
-    type sop_t = sop_t,
-    type inputs_t = inputs_t,
-    type outputs_t = outputs_t.*)
+  clone import Language as L2.
 
   (** Language L3 *)
-  clone import Language as L3. (*with
-    type public_t = public_t,
-    type secret_t = secret_t,
-    type sop_t = sop_t,
-    type inputs_t = inputs_t,
-    type outputs_t = outputs_t.*)
+  clone import Language as L3.
 
   (** API *)
   clone import API.

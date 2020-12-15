@@ -67,9 +67,7 @@ theory SinglePartyProtocolAPISemantics.
 
       if (cst = None) {
         newst <- stepL (progSt lst) (envSt lst) (resSt lst);
-        if (newst <> None) {
-          st <- upd_sigma (oget newst) st;
-        }
+        if (newst <> None) { st <- upd_sigma (oget newst) st; }
       }
       else {
         match (oget cst) with
@@ -77,19 +75,14 @@ theory SinglePartyProtocolAPISemantics.
                                if (vsio <> None) {
                                  (v, si) <- oget vsio;
                                  st <- upd_SigmaAPI (Some v) st; 
-                                 r <- Some si; 
-                               }
-                             }
+                                 r <- Some si; } }
         | Call_in a => { if (ib st <> None) {
                          asio <@ API.input(a, oget (ib st)); 
                          if (asio <> None) {
                            si <- oget asio;
                            st <- upd_ib None st;
                            st <- upd_SigmaAPI None st; 
-                           r <- Some si; 
-                         } 
-                       }
-                      }
+                           r <- Some si; } } }
         | Call_out a => { if (ob st = None) {
                             xxsio <@ API.output(a);
                             if (xxsio <> None) {

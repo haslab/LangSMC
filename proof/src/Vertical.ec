@@ -1,4 +1,4 @@
-require import AllCore List SmtMap Distr IntExtra IntDiv DMap FSet.
+require import AllCore List SmtMap Distr IntDiv DMap FSet.
 
 require import ALanguage ASecretSharingScheme AProtocolLibrary AAPI ASPSemantics AMPSemantics.
 require import MPCProtocolLibrary ProtocolAPI SPAPISemantics MPAPISemantics.
@@ -19,39 +19,7 @@ clone import MultiPartyProtocolAPISemantics with
   type L3.L = L.
 import MultiPartyAPISemantics.
 
-(*import ProtocolAPI.
-import ProtocolLibrary.
-import SecretSharingScheme.
-import MultiPartyAPISemantics.*)
-
-(*clone import SinglePartyAPISemantics as IdealSemantics with
-theory Language <- L1,
-type API.public_t = MPCAPI.API.public_t,
-type API.inputs_t = MPCAPI.API.inputs_t,
-type API.outputs_t = MPCAPI.API.outputs_t,
-type API.svar_t = MPCAPI.API.svar_t,
-type API.sop_t = MPCAPI.API.sop_t,
-type API.sideInfo_t = MPCAPI.API.sideInfo_t,
-type API.apiCall_data = MPCAPI.API.apiCall_data,
-type API.apiRes_data = MPCAPI.API.apiRes_data,
-type API.apiCallRes = MPCAPI.API.apiCallRes,
-op API.apiCall = MPCAPI.API.apiCall,
-op API.apiRes = MPCAPI.API.apiRes,
-op updRes (x: apiRes_data option) (st: ('a,'b) APIst) = (omap ApiRes x, st.`2),
-op st_from_step (x: ('a,'b) ECall) = (omap ApiCall x.`1, (x.`2.`1, x.`2.`2)),
-type EnvL = SemP1.EnvL,
-op stepL = SemP1.stepL,
-op initStateL = SemP1.initStateL,
-type SinglePartySemantics.output_event_t = MultiPartySemantics.output_event_t.*)
-
 import API.
-
-print MultiPartyProtocolAPISemantics.MultiPartyAPISemantics.API.apiCall.
-
-
-
-print MPCAPI.apiCall.
-
 
 clone import SinglePartyAPISemantics as IdealSemantics with
 theory Language <- L1,
@@ -73,104 +41,82 @@ op stepL = SemP1.stepL,
 op initStateL = SemP1.initStateL,
 type SinglePartySemantics.output_event_t = MultiPartySemantics.output_event_t.
 
-(*MPCAPI.API.
+  module IdealFunctionality (API : MPCAPI.API.API_t) = {
 
-clone import SinglePartyAPISemantics as IdealSemantics with
-theory Language <- L1,
-type API.public_t = value_t,
-type API.inputs_t = sharedValue_t,
-type API.outputs_t = sharedValue_t,
-type API.svar_t = svar_t,
-type API.sop_t = sop_t,
-type API.sideInfo_t = MPCProtocolLibrary.sideInfo_t,
-type API.apiCall_data = apiCall_data,
-type API.apiRes_data = apiRes_data,
-type API.apiCallRes = apiCallRes,
-op API.apiCall = apiCall,
-op API.apiRes = apiRes,
-op updRes (x: apiRes_data option) (st: ('a,'b) APIst) = (omap ApiRes x, st.`2),
-op st_from_step (x: ('a,'b) ECall) = (omap ApiCall x.`1, (x.`2.`1, x.`2.`2)),
-type EnvL = SemP1.EnvL,
-op stepL = SemP1.stepL,
-op initStateL = SemP1.initStateL,
-type SinglePartySemantics.output_event_t = MultiPartySemantics.output_event_t.*)
+    var st : configuration_t
 
-module IdealFunctionality (API : MPCAPI.API.API_t) = {
+    proc init(P : L) : unit = {
+      st <- initial_configuration P;
+      API.init();
+    }
+    proc step() : sideInfo_t option = {
+      var r, lst, newst, cst;
+      var v, xx, si;
+      var vsio, asio, xxsio;
 
-   var st : configuration_t
+      lst <- sigma st;
+      r <- None;
+      cst <- callSt lst;
 
-   proc init(P : L) : unit = {
-     st <- initial_configuration P;
-     API.init();
-   }
-   proc step() : sideInfo_t option = {
-     var r, lst, newst, cst;
-     var v, xx, si;
-     var vsio, asio, xxsio;
-
-     lst <- sigma st;
-     r <- None;
-     cst <- callSt lst;
-
-     if (cst = None) {
-       newst <- stepL (progSt lst) (envSt lst) (resSt lst);
-       if (newst <> None) {
-         st <- upd_sigma (oget newst) st;
-       }
-     }
-     else {
-       match (oget cst) with
-       | Call_declass a => { vsio <@ API.declass(a); 
-                              if (vsio <> None) {
-                                (v, si) <- oget vsio;
-                                st <- upd_SigmaAPI (Some v) st; 
-                                r <- Some si; 
-                              }
-                            }
-       | Call_in a => { if (ib st <> None) {
-                        asio <@ API.input(a, oget (ib st)); 
-                        if (asio <> None) {
-                          si <- oget asio;
-                          st <- upd_ib None st;
-                          st <- upd_SigmaAPI None st; 
-                          r <- Some si; 
-                        } 
+      if (cst = None) {
+        newst <- stepL (progSt lst) (envSt lst) (resSt lst);
+        if (newst <> None) {
+          st <- upd_sigma (oget newst) st;
+        }
+      }
+      else {
+        match (oget cst) with
+        | Call_declass a => { vsio <@ API.declass(a); 
+                               if (vsio <> None) {
+                                 (v, si) <- oget vsio;
+                                 st <- upd_SigmaAPI (Some v) st; 
+                                 r <- Some si; 
+                               }
+                             }
+        | Call_in a => { if (ib st <> None) {
+                         asio <@ API.input(a, oget (ib st)); 
+                         if (asio <> None) {
+                           si <- oget asio;
+                           st <- upd_ib None st;
+                           st <- upd_SigmaAPI None st; 
+                           r <- Some si; 
+                         } 
+                       }
                       }
-                     }
-       | Call_out sv => { if (ob st = None) {
-                           xxsio <@ API.output(sv);
-                           if (xxsio <> None) {
-                             (xx, si) <- oget xxsio;
-                             st <- upd_ob (Some xx) st;
-                             st <- upd_SigmaAPI None st; 
-                             r <- Some si; } } }
-       | Call_sop sop a pargs sargs => { asio <@ API.sop(sop, pargs, sargs, a);
-                                       if (asio <> None) {
-                                         si <- oget asio;
-                                         st <- upd_SigmaAPI None st;
-                                         r <- Some si; } }
-       end;
-     }
+        | Call_out sv => { if (ob st = None) {
+                            xxsio <@ API.output(sv);
+                            if (xxsio <> None) {
+                              (xx, si) <- oget xxsio;
+                              st <- upd_ob (Some xx) st;
+                              st <- upd_SigmaAPI None st; 
+                              r <- Some si; } } }
+        | Call_sop sop a pargs sargs => { asio <@ API.sop(sop, pargs, sargs, a);
+                                        if (asio <> None) {
+                                          si <- oget asio;
+                                          st <- upd_SigmaAPI None st;
+                                          r <- Some si; } }
+        end;
+      }
 
-     return r;
-   }
-   proc setInput(x: inputs_t): bool = {
-     var r <- false;
-     if (ib st = None) {
-       r <- true;
-       st <- upd_ib (Some x) st;
-     }
-     return r;
-   }
-   proc getOutput(): outputs_t option = {
-     var r: outputs_t option;
-     r <- ob st;
-     if (r <> None) {
-       st <- upd_ob None st;
-     }
-     return r;
-   }
- }.
+      return r;
+    }
+    proc setInput(x: inputs_t): bool = {
+      var r <- false;
+      if (ib st = None) {
+        r <- true;
+        st <- upd_ib (Some x) st;
+      }
+      return r;
+    }
+    proc getOutput(): outputs_t option = {
+      var r: outputs_t option;
+      r <- ob st;
+      if (r <> None) {
+        st <- upd_ob None st;
+      }
+      return r;
+    }
+  }.
 
 module API_Ideal : IdealSemantics.API.API_t = {
   var senv: (svar_t, value_t) fmap
@@ -282,56 +228,6 @@ module type IdealInterface = {
 module type SimInterface (Sem: IdealInterface) = {
   include MultiPartySemantics.AdvSemInterface
 }.
-
-(*module API_Simulator (ISem : IdealInterface) = {
-  var senv: (svar_t, sharedValue_t) fmap
-  proc init(): unit = {
-    senv <- empty;
-  }
-  proc declass(a: svar_t): (value_t * sideInfo_t) option = {
-    var v, tr, l, r;
-     r <- None;
-     if (a \in senv) {
-       l <@ ISem.step();
-       (v,tr) <@ APIsec.sim_declass(oget (senv.[a]), oget (oget l).`leakage); 
-       r <- Some (v, tr);
-     }
-    return r;
-  }
-
-  proc input(a : svar_t, inp: sharedValue_t): sideInfo_t option = {
-    var tr, l, r;
-    r <- None;
-    l <@ ISem.step();
-    tr <@ APIsec.sim_in(oget (oget l).`leakage);
-    senv <- senv.[ a <- take t inp ];
-    r <- Some tr;
-    return r;
-  }
-
-  proc output(a: svar_t): sideInfo_t option = {
-    var tr, r, l;
-     r <- None;
-     if (a \in senv) {
-       l <@ ISem.step();
-       tr <@ APIsec.sim_out(oget (senv.[a]), oget (oget l).`leakage);
-       r <- Some tr;
-     }
-    return r;
-  }
-
-  proc sop(sop: sop_t, pargs: value_t list, sargs: svar_t list, a : svar_t) : sideInfo_t option = {
-    var y, tr, l, r;
-     r <- None;
-     if (forall x, x \in sargs /\ x \in senv) {
-       l <@ ISem.step();
-       (y, tr) <@ APIsec.sim_sop(sop, pargs, map (fun a => oget senv.[a]) sargs, (oget l).`leakage);
-       senv <- senv.[ a <- y ];
-       r <- Some tr;
-     }
-    return r;
-  }
-}.*)
 
 section Security.
 
@@ -778,7 +674,15 @@ rewrite fun_ext /(==) => *.
 smt().
 smt().
 rewrite -map_comp /(\o) => //=.
+
+cut ->: (fun (x : svar_t) => take SecretSharingScheme.t (oget API_Real.senv{1}.[x])) = 
+        (fun (a : svar_t) => oget Simulator.senv{2}.[a]).
+rewrite fun_ext /(==) => x.
+rewrite H6.
 smt().
+smt().
+smt().
+
 smt(mem_set).
 smt(mem_set).
 smt(mem_set).

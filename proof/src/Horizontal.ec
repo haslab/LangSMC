@@ -1,4 +1,4 @@
-require import AllCore List SmtMap Distr IntExtra IntDiv DMap FSet.
+require import AllCore List SmtMap Distr IntDiv DMap FSet.
 
 require import ALanguage ASecretSharingScheme AProtocolLibrary AAPI ASPSemantics AMPSemantics.
 require import MPCProtocolLibrary ProtocolAPI SPAPISemantics MPAPISemantics.
@@ -20,7 +20,9 @@ clone import MultiPartyProtocolAPISemantics as Source with
   type MultiPartyAPISemantics.SemP2.EnvL = MultiPartyAPISemantics.SemP1.EnvL,
   type MultiPartyAPISemantics.SemP3.EnvL = MultiPartyAPISemantics.SemP1.EnvL,
   op MultiPartyAPISemantics.SemP2.stepL = MultiPartyAPISemantics.SemP1.stepL,
-  op MultiPartyAPISemantics.SemP3.stepL = MultiPartyAPISemantics.SemP1.stepL.
+  op MultiPartyAPISemantics.SemP3.stepL = MultiPartyAPISemantics.SemP1.stepL,
+  op MultiPartyAPISemantics.SemP2.stepPiter = MultiPartyAPISemantics.SemP1.stepPiter,
+  op MultiPartyAPISemantics.SemP3.stepPiter = MultiPartyAPISemantics.SemP2.stepPiter.
 
 (* The REAL API *)
 module API_Real : API.API_t = {
@@ -182,9 +184,10 @@ clone import Language as L3'.
 clone import MultiPartyProtocolAPISemantics as Target with
   type L1.L = L1'.L,
   type L2.L = L2'.L,
-  type L3.L = L3'.L.
-import MultiPartyAPISemantics.
-import MultiPartySemantics.
+  type L3.L = L3'.L
+rename "MultiPartyAPISemantics.GlobalSt" as "TGlobalSt".
+(*import MultiPartyAPISemantics.
+import MultiPartySemantics.*)
 
 (** COMPILERS **)
 
@@ -192,11 +195,6 @@ import MultiPartySemantics.
 
 (* equivalence relation on source/target local states *)
 op equivLSt ['ls, 'es, 'lt, 'et] : ('ls*'es) -> ('lt*'et) -> bool.
-
-print SemP1.API.apiCallRes.
-print API.apiCallRes.
-print ProtocolAPI.API.apiCallRes.
-print apiCallRes.
 
 op equivSt1 ['ls, 'es, 'lt, 'et] (s:('ls,'es) Source.MultiPartyAPISemantics.SemP1.APIst) (s':('lt,'et) Target.MultiPartyAPISemantics.SemP1.APIst) =
  s.`1 = s'.`1 /\ equivLSt s.`2 s'.`2.
@@ -348,10 +346,6 @@ move: (Target.MultiPartyAPISemantics.SemP3.callSt_stepPiter step k st' H4); move
  by move: H2; rewrite Target.MultiPartyAPISemantics.SemP3.stepPiter0 //.
 by move: H2; rewrite H5.
 qed.
-(*module RealSemMT: RealSemInterface = {
-  module PSem = ProgSemMT(API_Real)
-  include PSem
-}.*)
 
 module RealSemMT = Target.ProgSem(API_Real).
 module RealSem = Source.ProgSem(API_Real).
@@ -372,9 +366,9 @@ module AdvOrclMT (Sem: AdvSemInterface) : AdvSemInterface = {
   proc stepS(): sideInfo_t option = {
     var b, i, v;
     var r <- None;
-    var ecall <- Target.syncPoint (Target.MultiPartyAPISemantics.SemP1.callSt (StP1 SemEmu.st),
-                            Target.MultiPartyAPISemantics.SemP2.callSt (StP2 SemEmu.st),
-                            Target.MultiPartyAPISemantics.SemP3.callSt (StP3 SemEmu.st));
+    var ecall <- Target.syncPoint (Target.MultiPartyAPISemantics.SemP1.callSt (Target.MultiPartyAPISemantics.StP1 SemEmu.st),
+                            Target.MultiPartyAPISemantics.SemP2.callSt (Target.MultiPartyAPISemantics.StP2 SemEmu.st),
+                            Target.MultiPartyAPISemantics.SemP3.callSt (Target.MultiPartyAPISemantics.StP3 SemEmu.st));
     if (ecall <> None) { (* call to the API *)
       (* advance the source into a sync-point *)
       i <- 0;
@@ -391,13 +385,13 @@ module AdvOrclMT (Sem: AdvSemInterface) : AdvSemInterface = {
           match (oget ecall) with
           | Call_declass a => { v <- leakage_value (oget (oget r).`leakage);
                                 (* updates API result *)
-                                RealSemMT.st <- upd_SigmaAPI (Some (oget v)) RealSemMT.st;
+                                RealSemMT.st <- Target.MultiPartyAPISemantics.upd_SigmaAPI (Some (oget v)) RealSemMT.st;
                               }
-          | Call_in a => { RealSemMT.st <- upd_SigmaAPI None RealSemMT.st; (* resets call *)
+          | Call_in a => { RealSemMT.st <- Target.MultiPartyAPISemantics.upd_SigmaAPI None RealSemMT.st; (* resets call *)
                          }
-          | Call_out a => { RealSemMT.st <- upd_SigmaAPI None RealSemMT.st; (* resets call *)
+          | Call_out a => { RealSemMT.st <- Target.MultiPartyAPISemantics.upd_SigmaAPI None RealSemMT.st; (* resets call *)
                           }
-      | Call_sop o a pargs sargs => { RealSemMT.st <- upd_SigmaAPI None RealSemMT.st; (* resets call *)
+      | Call_sop o a pargs sargs => { RealSemMT.st <- Target.MultiPartyAPISemantics.upd_SigmaAPI None RealSemMT.st; (* resets call *)
                                     }
       end;
       }        
@@ -412,16 +406,16 @@ declare module A: Adversary{ProgSem, ProgSem, AdvOrclMT}.
 declare module Z: Environment{A, API_Real, ProgSem, AdvOrclMT}.
 
 op inv (stMT1 stMT2: Target.MultiPartyAPISemantics.GlobalSt) (stST2: Source.MultiPartyAPISemantics.GlobalSt) =
- stMT2.`StP1 = stMT1.`StP1 /\
- stMT2.`StP2 = stMT1.`StP2 /\
- stMT2.`StP3 = stMT1.`StP3 /\
- Source.MultiPartyAPISemantics.ib stST2 = stMT1.`ib /\
- Source.MultiPartyAPISemantics.ob stST2 = stMT1.`ob /\
+ stMT2.`Target.MultiPartyAPISemantics.StP1 = stMT1.`Target.MultiPartyAPISemantics.StP1 /\
+ stMT2.`Target.MultiPartyAPISemantics.StP2 = stMT1.`Target.MultiPartyAPISemantics.StP2 /\
+ stMT2.`Target.MultiPartyAPISemantics.StP3 = stMT1.`Target.MultiPartyAPISemantics.StP3 /\
+ Source.MultiPartyAPISemantics.ib stST2 = stMT1.`Target.MultiPartyAPISemantics.ib /\
+ Source.MultiPartyAPISemantics.ob stST2 = stMT1.`Target.MultiPartyAPISemantics.ob /\
  Source.MultiPartyAPISemantics.StP1 stST2 = Source.MultiPartyAPISemantics.StP2 stST2 /\
   Source.MultiPartyAPISemantics.StP2 stST2 = Source.MultiPartyAPISemantics.StP3 stST2 /\
- advSt1 Target.MultiPartyAPISemantics.SemP1.stepL (Source.MultiPartyAPISemantics.StP1 stST2) stMT1.`StP1 /\
- advSt2 Target.MultiPartyAPISemantics.SemP2.stepL (Source.MultiPartyAPISemantics.StP2 stST2) stMT1.`StP2 /\
- advSt3 Target.MultiPartyAPISemantics.SemP3.stepL (Source.MultiPartyAPISemantics.StP3 stST2) stMT1.`StP3.
+ advSt1 Target.MultiPartyAPISemantics.SemP1.stepL (Source.MultiPartyAPISemantics.StP1 stST2) stMT1.`Target.MultiPartyAPISemantics.StP1 /\
+ advSt2 Target.MultiPartyAPISemantics.SemP2.stepL (Source.MultiPartyAPISemantics.StP2 stST2) stMT1.`Target.MultiPartyAPISemantics.StP2 /\
+ advSt3 Target.MultiPartyAPISemantics.SemP3.stepL (Source.MultiPartyAPISemantics.StP3 stST2) stMT1.`Target.MultiPartyAPISemantics.StP3.
 
 local lemma nosmt stepP_prop:
  equiv [ RealSemMT.stepP ~ AdvOrclMT(RealSem).stepP:
@@ -478,6 +472,27 @@ proof.
 rewrite fun_ext /(==) => ? /#.
 qed.
 
+lemma test k i f ss :
+  0 <= i =>
+  0 <= k =>
+  i < k =>
+  SemP1.stepPiter f k ss <> None =>
+  SemP1.stepPiter f i ss <> None.
+proof.
+move => ?.
+elim k.
+simplify.
+move => /> *.
+smt.
+move => /> k *.
+move : H3.
+rewrite SemP1.stepPiterS.
+smt().
+move => *.
+smt.
+qed.
+
+
 local lemma nosmt stepS_prop:
  equiv [ RealSemMT.stepS ~ AdvOrclMT(RealSem).stepS:
          true /\ ={API_Real.senv} /\
@@ -493,7 +508,7 @@ seq 0 0: ((exists (ks : int) ss',
             (*stepPiter stepL ks (oget ProgSem.st{2}.`Sigma.[1])*)
             Source.MultiPartyAPISemantics.SemP1.stepPiter Source.MultiPartyAPISemantics.SemP1.stepL ks (Source.MultiPartyAPISemantics.StP1 Source.ProgSem.st{2})
             = Some ss' /\
-            equivSt1 ss' Target.ProgSem.st{1}.`StP1 /\ 0 <= ks)
+            equivSt1 ss' Target.ProgSem.st{1}.`Target.MultiPartyAPISemantics.StP1 /\ 0 <= ks)
           /\ #[/:]pre).
  skip; rewrite /inv => |> *.
  move: H6 => [??[?[??]]].
@@ -502,20 +517,20 @@ elim* => ??.
 exists* (Source.MultiPartyAPISemantics.StP1 Source.ProgSem.st{2}); elim* => ss.
 conseq (_: ss = Source.MultiPartyAPISemantics.StP1 Source.ProgSem.st{2} /\
            Source.MultiPartyAPISemantics.SemP1.stepPiter Source.MultiPartyAPISemantics.SemP1.stepL ks (Source.MultiPartyAPISemantics.StP1 Source.ProgSem.st{2}) = Some ss' /\
-           equivSt1 ss' Target.ProgSem.st{1}.`StP1 /\
-           equivSt2 ss' Target.ProgSem.st{1}.`StP2 /\
-           equivSt3 ss' Target.ProgSem.st{1}.`StP3 /\
+           equivSt1 ss' Target.ProgSem.st{1}.`Target.MultiPartyAPISemantics.StP1 /\
+           equivSt2 ss' Target.ProgSem.st{1}.`Target.MultiPartyAPISemantics.StP2 /\
+           equivSt3 ss' Target.ProgSem.st{1}.`Target.MultiPartyAPISemantics.StP3 /\
            ={r,ecall,API_Real.senv} /\
            0 <= ks /\ r{2}=None /\
-           ecall{2} = Target.MultiPartyAPISemantics.SemP1.callSt Target.ProgSem.st{2}.`StP1 /\
-           ecall{2} = Target.MultiPartyAPISemantics.SemP2.callSt Target.ProgSem.st{2}.`StP2 /\
-           ecall{2} = Target.MultiPartyAPISemantics.SemP3.callSt Target.ProgSem.st{2}.`StP3 /\
+           ecall{2} = Target.MultiPartyAPISemantics.SemP1.callSt Target.ProgSem.st{2}.`Target.MultiPartyAPISemantics.StP1 /\
+           ecall{2} = Target.MultiPartyAPISemantics.SemP2.callSt Target.ProgSem.st{2}.`Target.MultiPartyAPISemantics.StP2 /\
+           ecall{2} = Target.MultiPartyAPISemantics.SemP3.callSt Target.ProgSem.st{2}.`Target.MultiPartyAPISemantics.StP3 /\
            ecall{2} <> None /\
-           Target.ProgSem.st{2}.`StP1 = Target.ProgSem.st{1}.`StP1 /\
-           Target.ProgSem.st{2}.`StP2 = Target.ProgSem.st{1}.`StP2 /\
-           Target.ProgSem.st{2}.`StP3 = Target.ProgSem.st{1}.`StP3 /\
-           Source.MultiPartyAPISemantics.ib Source.ProgSem.st{2} = Target.ProgSem.st{1}.`ib /\
-           Source.MultiPartyAPISemantics.ob Source.ProgSem.st{2} = Target.ProgSem.st{1}.`ob /\
+           Target.ProgSem.st{2}.`Target.MultiPartyAPISemantics.StP1 = Target.ProgSem.st{1}.`Target.MultiPartyAPISemantics.StP1 /\
+           Target.ProgSem.st{2}.`Target.MultiPartyAPISemantics.StP2 = Target.ProgSem.st{1}.`Target.MultiPartyAPISemantics.StP2 /\
+           Target.ProgSem.st{2}.`Target.MultiPartyAPISemantics.StP3 = Target.ProgSem.st{1}.`Target.MultiPartyAPISemantics.StP3 /\
+           Source.MultiPartyAPISemantics.ib Source.ProgSem.st{2} = Target.ProgSem.st{1}.`Target.MultiPartyAPISemantics.ib /\
+           Source.MultiPartyAPISemantics.ob Source.ProgSem.st{2} = Target.ProgSem.st{1}.`Target.MultiPartyAPISemantics.ob /\
            Source.MultiPartyAPISemantics.StP1 Source.ProgSem.st{2} = Source.MultiPartyAPISemantics.StP2 Source.ProgSem.st{2} /\
            Source.MultiPartyAPISemantics.StP2 Source.ProgSem.st{2} = Source.MultiPartyAPISemantics.StP3 Source.ProgSem.st{2}
            ==> _).
@@ -620,33 +635,92 @@ smt().
 rewrite hloop3.
 rewrite /b2i /=.
 smt(Source.MultiPartyAPISemantics.SemP3.stepPiter0 get_set_id).
+smt(). 
+
+   wp; call (stepP_spec P3
+    {| sw with StP1 = oget (SemP1.stepPiter SemP1.stepL 1 sw.`StP1) ;
+              StP2 = oget (SemP2.stepPiter SemP2.stepL 1 sw.`StP2) |}).
+   call (stepP_spec P2 {| sw with StP1 = oget (SemP1.stepPiter SemP1.stepL 1 sw.`StP1) |}). 
+   call (stepP_spec P1 sw).
+   skip => *. 
+    have Hloop: SemP1.stepPiter SemP1.stepL 1 (Source.ProgSem.st{hr}.`StP1)
+                <> None.
+    apply (SemP1.stepPiter_lt _ ks i{hr} ss); first 2 smt().
+     move: H; progress.
+     move: H2; rewrite H17 b2i1 /=.
+
+move => <-.
+rewrite -some_oget.
+smt(test).
+done.
+
+move: H; rewrite /inv;
+progress.
+smt(Source.MultiPartyAPISemantics.SemP1.stepPiter0 get_set_id).
+have ?: Source.MultiPartyAPISemantics.SemP1.stepPiter Source.MultiPartyAPISemantics.SemP1.stepL 1 Source.ProgSem.st{hr}.`StP1 = Source.MultiPartyAPISemantics.SemP2.stepPiter Source.MultiPartyAPISemantics.SemP2.stepL 1 Source.ProgSem.st{hr}.`StP2.
+cut ->: Source.MultiPartyAPISemantics.SemP2.stepL = Source.MultiPartyAPISemantics.SemP1.stepL.
+smt(-local_source_step12).
+rewrite H15.
+rewrite /stepPiter.
+congr.
 smt().
-   wp; call (stepP_spec P3 
-    {| sw with Sigma = sw.`Sigma.[
-        1 <- oget (stepPiter stepL 1 (oget (sw.`Sigma.[1])))].[
-        2 <- oget (stepPiter stepL 1 (oget (sw.`Sigma.[1])))] |}).
-   call (stepP_spec 2 {| sw with Sigma = sw.`Sigma.[
-        1 <- oget (stepPiter stepL 1 (oget (sw.`Sigma.[1])))] |}). 
-   call (stepP_spec 1 sw).
-   skip => *.
-   have Hloop: stepPiter stepL 1 (oget ProgSem.st{hr}.`Sigma.[1])
-               <> None.
-    apply (stepPiter_lt _ ks i{hr} ss); first 2 smt().
-    rewrite -some_oget 1:/#.
-    move: H; progress; smt().
-   move: H; rewrite /inv; progress; 1..7,9..12: smt(get_setE).
-   - rewrite !get_setE /=.
-     rewrite H17 Hloop b2i1 /= -some_oget //.
-     rewrite stepPiterS; first smt().
-     move: H2; rewrite H18 b2i1 /= => ->.
-     by rewrite (some_oget ProgSem.st{hr}.`Sigma.[1]) /#.
+have ?: Source.MultiPartyAPISemantics.SemP1.stepPiter Source.MultiPartyAPISemantics.SemP1.stepL 1 Source.ProgSem.st{hr}.`StP1 = Source.MultiPartyAPISemantics.SemP3.stepPiter Source.MultiPartyAPISemantics.SemP3.stepL 1 Source.ProgSem.st{hr}.`StP3.
+cut ->: Source.MultiPartyAPISemantics.SemP3.stepL = Source.MultiPartyAPISemantics.SemP1.stepL.
+smt().
+rewrite H15 H16.
+rewrite /stepPiter.
+congr.
+smt().
+smt().
+smt().
+rewrite /b2i /=.
+have ?: Source.MultiPartyAPISemantics.SemP1.stepPiter Source.MultiPartyAPISemantics.SemP1.stepL 1 Source.ProgSem.st{hr}.`StP1 = Source.MultiPartyAPISemantics.SemP3.stepPiter Source.MultiPartyAPISemantics.SemP3.stepL 1 Source.ProgSem.st{hr}.`StP3.
+cut ->: Source.MultiPartyAPISemantics.SemP3.stepL = Source.MultiPartyAPISemantics.SemP1.stepL.
+smt().
+rewrite H15 H16.
+rewrite /stepPiter.
+congr.
+simplify.
+have hloop3 : Source.MultiPartyAPISemantics.SemP3.stepPiter Source.MultiPartyAPISemantics.SemP3.stepL 1 Source.ProgSem.st{hr}.`StP3 <> None.
+smt().
+rewrite hloop3.
+rewrite /b2i /=.
+move : H2.
+rewrite /b2i H17 /=.
+move => *.
+rewrite SemP1.stepPiterS 1:/#.
+cut -> : SemP1.stepPiter SemP1.stepL i{hr} ss = Some (Source.ProgSem.st{hr}.`StP1).
+smt(test).
+smt().
+rewrite H15 H16.
+rewrite /stepPiter.
+congr.
+
+rewrite H16.
+congr.
+simplify.
+rewrite /b2i /=.
+have hloop3 : Source.MultiPartyAPISemantics.SemP3.stepPiter Source.MultiPartyAPISemantics.SemP3.stepL 1 Source.ProgSem.st{hr}.`StP3 <> None.
+have ? : SemP1.stepPiter SemP1.stepL i{hr} ss = Some (Source.ProgSem.st{hr}.`StP1).
+smt(test).
+cut ->: SemP3.stepPiter = SemP1.stepPiter. smt().
+cut ->: SemP3.stepL = SemP1.stepL. smt().
+cut ->: Source.ProgSem.st{hr}.`StP3 = Source.ProgSem.st{hr}.`StP1. smt().
+smt().
+rewrite hloop3 /=.
+cut ->: SemP3.stepPiter = SemP1.stepPiter. smt().
+cut ->: SemP3.stepL = SemP1.stepL. smt().
+done.
+
+smt().
+
  skip; progress; 1..2,4..5: smt().
- by rewrite b2i1 /= stepPiter0 // -some_oget /#.
-inline RealSem.stepS.
+ by rewrite b2i1 /= SemP1.stepPiter0 // -some_oget /#.
+
+inline Source.ProgSem(API_Real).stepS.
 seq 0 2: (#[/:]pre /\ r0{2} = None /\ ecall{1}=ecall0{2}).
  wp; skip; rewrite /inv; progress.
- rewrite /allECalls (_:3 = 1+1+1) 1:// !iotaS // iota1 /=.
- by rewrite !H12 !H13 /= H3 (equivSt_callSt _ _ H) /#.
+ rewrite /allECalls => /#.
 rcondt {2} 1; first by move=>*; skip; progress.
 match; move=> *. 
 - (* call_declass *)
@@ -657,133 +731,159 @@ match; move=> *.
   split; move => [a Ha]; exists a; smt().
 - (* call_sop *)
   split; move => [o a pargs sargs Ho]; exists o a pargs sargs; smt().
+
+
 - (* call_declass *)
-  inline API_Real.api_declass.
-  rcondt {2} 7.
-   move=> *; inline*; wp; rnd; wp; skip; progress; smt().
-  inline*; sp.
-  seq 1 1: (#pre /\ ={t0}); first by rnd; skip; progress; smt().
-  sp; match {2}.
-  + move=> *; wp; skip; progress; first 5 smt().
-    - by rewrite /upd_SigmaAPI /= mapE /= /updRes /upd_ib /=
-                 (some_oget st_R.`Sigma.[1]) // /#.
-    - by rewrite /upd_SigmaAPI /upd_ib /= !mapE /= /#.
-    - by rewrite /upd_SigmaAPI /upd_ib /= !mapE /= /#.
-    - exists 0 (upd_P_API (Some (oget (leakage_value (oget t0{2}.`leakage)))) st_L).`P1.
-      split; first done.
-      split; last by apply stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_SigmaAPI
-                 /= mapE /= /updRes /= oget_omap_some /#.
-    - exists 0 (upd_P_API (Some (oget (leakage_value (oget t0{2}.`leakage)))) st_L).`P2.
-      split; first done.
-      split; last by apply stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_SigmaAPI
-                 /= mapE /= /updRes /= oget_omap_some /#.
-    - exists 0 (upd_P_API (Some (oget (leakage_value (oget t0{2}.`leakage)))) st_L).`P3.
-      split; first done.
-      split; last by apply stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_SigmaAPI
-                 /= mapE /= /updRes /= oget_omap_some /#.
-  + move=> *; wp; skip; progress; smt().
-  + move=> *; wp; skip; progress; smt().
-  + move=> *; wp; skip; progress; smt().
+inline*.
+sp; (if; first by smt()); last first.
+wp. wp; skip; progress.
+smt. smt. smt.
+wp; rnd; wp; skip; progress.
+smt().
+smt().
+rewrite H /=.
+rewrite /upd_SigmaAPI /updRes /=.
+
+rewrite /inv => |>*; progress. 
+smt(prot_declass_suppE).
+smt().
+smt(prot_declass_suppE).
+smt().
+smt(prot_declass_suppE).
+smt().
+smt().
+smt().
+smt.
+smt.
+smt.
+    
 - (* call_in *)
   if => //=; [smt() | |]; last first.
    rcondf {2} 2; first by move=>*; wp; skip; progress.
-   by wp; skip; progress; smt(advSt0).
-  seq 1 1: (#pre /\ ={t}).
+   wp; skip; progress. smt. smt. smt.
+  seq 1 1: (#pre /\ ={ato}).
    call (_: ={API_Real.senv} /\ a{1}=a0{2}).
     by inline*; wp; rnd; wp; skip; progress.
    by skip; progress; smt().
-  rcondt {2} 5; first by move=>*; wp; skip; progress.
+(if; first by smt()); last first.
+sp 0 1; if{2}; first by exfalso => /#.
+skip; progress.
+smt. smt. smt.
+rcondt{2} 6; first by move => *; wp; skip.
+
   sp; match {2}; move=> *.
   + wp; skip; progress; smt().
   + wp; skip; rewrite /inv => |>*; progress; first 3 smt().
-    - by rewrite /upd_SigmaAPI /= mapE /= /updRes /upd_ib /=
-                 (some_oget st_R.`Sigma.[1]) // /#.
-    - by rewrite /upd_SigmaAPI /upd_ib /= !mapE /= /#.
-    - by rewrite /upd_SigmaAPI /upd_ib /= !mapE /= /#.
-    - exists 0 (upd_P_API None (upd_ibmt None st_L)).`P1.
-      split; first done.
-      split; last by rewrite stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_ibmt /upd_SigmaAPI
-                 /= mapE /= /upd_ib /= /updRes /= get_some /#.
-    - exists 0 (upd_P_API None (upd_ibmt None st_L)).`P2.
-      split; first done.
-      split; last by rewrite stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_ibmt /upd_SigmaAPI
-                 /= mapE /= /upd_ib /= /updRes /= get_some /#.
-    - exists 0 (upd_P_API None (upd_ibmt None st_L)).`P3.
-      split; first done.
-      split; last by rewrite stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_ibmt /upd_SigmaAPI
-                 /= mapE /= /upd_ib /= /updRes /= get_some /#.
+    - by rewrite /upd_SigmaAPI /= /#. 
+    - by rewrite /upd_SigmaAPI /= /#.
+smt. 
+smt.
+smt.
   + wp; skip; progress; smt().
   + wp; skip; progress; smt().
 - (* call_out *)
   if => //=; [smt() | |]; last first.
    rcondf {2} 2; first by move=>*; wp; skip; progress.
-   by wp; skip; progress; smt(advSt0).
-  seq 1 1: (#pre /\ ={x, t}).
+   wp; skip; progress. smt. smt. smt.
+  seq 1 1: (#pre /\ ={xto}).
    call (_: ={API_Real.senv} /\ a{1}=a0{2}).
+sp. if; last by skip. smt().
     by inline*; wp; rnd; wp; skip; progress.
    by skip; progress; smt().
-  rcondt {2} 5; first by move=>*; wp; skip; progress.
+(if; first by smt()); last first.
+sp 0 1; if{2}; first by exfalso => /#.
+skip; progress.
+smt. smt. smt.
+rcondt{2} 6; first by move => *; wp; skip.
   sp; match {2}; move=> *.
   + wp; skip; progress; smt().
   + wp; skip; progress; smt().
   + wp; skip; rewrite /inv => |>*; progress; first 3 smt().
-    - by rewrite /upd_SigmaAPI /upd_P_API /upd_obmt /= mapE /#.
-    - by rewrite /upd_SigmaAPI /upd_ob /= !mapE /= /#.
-    - by rewrite /upd_SigmaAPI /upd_ob /= !mapE /= /#.
-    - exists 0 (upd_P_API None (upd_ibmt None st_L)).`P1.
-      split; first done.
-      split; last by rewrite stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_ibmt /upd_SigmaAPI
-                 /= mapE /= /upd_ib /= /updRes /= get_some /#.
-    - exists 0 (upd_P_API None (upd_ibmt None st_L)).`P2.
-      split; first done.
-      split; last by rewrite stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_ibmt /upd_SigmaAPI
-                 /= mapE /= /upd_ib /= /updRes /= get_some /#.
-    - exists 0 (upd_P_API None (upd_ibmt None st_L)).`P3.
-      split; first done.
-      split; last by rewrite stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_ibmt /upd_SigmaAPI
-                 /= mapE /= /upd_ib /= /updRes /= get_some /#.
+    - by rewrite /upd_SigmaAPI /upd_P_API /upd_obmt /= /#.
+    - by rewrite /upd_SigmaAPI /upd_ob /= /= /#.
+    - by rewrite /upd_SigmaAPI /upd_ob /= /#.
+    - by rewrite /upd_SigmaAPI /upd_ob /= /#.
+smt.
+smt.
+smt.
   + wp; skip; progress; smt().
 - (* call_sop *)
-  seq 1 1: (#pre /\ ={t}).
+  seq 1 1: (#pre /\ ={ato}).
    call (_: ={API_Real.senv} /\
             (o,pargs,sargs,a){1}=(o0,pargs0,sargs0,a0){2}).
-    by inline*; wp; rnd; wp; skip; progress.
-   by skip; progress; smt(advSt0).
-  rcondt {2} 4; first by move=>*; wp; skip; progress.
+sp; (if; first by smt()); last by skip.    
+by inline*; wp; rnd; wp; skip; progress.
+   by skip; progress; smt().
+(if; first by smt()); last first.
+sp 0 1; if{2}; first by exfalso => /#.
+skip; progress.
+smt. smt. smt.
+rcondt{2} 5; first by move => *; wp; skip.
   sp; match {2}; move=> *.
   + wp; skip; progress; smt().
   + wp; skip; progress; smt().
   + wp; skip; progress; smt().
   + wp; skip; rewrite /inv => |>*; progress; first 3 smt().
-    - rewrite /upd_SigmaAPI /= mapE /= /updRes /upd_ib /=
-              (some_oget st_R.`Sigma.[1]) // /#.
-    - by rewrite /upd_SigmaAPI /= !mapE /= /#.
-    - by rewrite /upd_SigmaAPI /= !mapE /= /#.
-    - exists 0 (upd_P_API None (upd_ibmt None st_L)).`P1.
-      split; first done.
-      split; last by rewrite stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_ibmt /upd_SigmaAPI
-                 /= mapE /= /upd_ib /= /updRes /= get_some /#.
-    - exists 0 (upd_P_API None (upd_ibmt None st_L)).`P2.
-      split; first done.
-      split; last by rewrite stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_ibmt /upd_SigmaAPI
-                 /= mapE /= /upd_ib /= /updRes /= get_some /#.
-    - exists 0 (upd_P_API None (upd_ibmt None st_L)).`P3.
-      split; first done.
-      split; last by rewrite stepPiter0.
-      by rewrite /equivSt /upd_P_API /upd_ibmt /upd_SigmaAPI
-                 /= mapE /= /upd_ib /= /updRes /= get_some /#.
+    - by rewrite /upd_SigmaAPI /=/updRes /#. 
+    - by rewrite /upd_SigmaAPI /=/updRes /#. 
+smt.
+smt.
+smt.
 qed.
+
+equiv SecurityMT:
+ Eval(RealSem,Z,A).eval ~ REAL(Z, AdvMT(A)).game
+ : ={P, glob A, glob Z} ==> ={res}.
+proof.
+proc.
+call (_: ={glob A, API_Real.senv} /\
+         inv ProgSemMT.st{1} ProgSemMT.st{2} ProgSem.st{2}
+     ). 
+- (* setInput *)
+  by proc; inline*; wp; skip; progress; smt().
+- (* getOutput *)
+  by proc; inline*; wp; skip; progress; smt().
+- (* activate *)
+  proc; call (_: ={API_Real.senv} /\
+                 inv ProgSemMT.st{1} ProgSemMT.st{2} ProgSem.st{2}
+             ).
+  + (* stepP *)
+    by apply stepP_prop.
+  + (* stepS *)
+    by apply stepS_prop.
+    by skip; progress. 
+- inline*; call (_: ={API_Real.senv} /\
+                    inv ProgSemMT.st{1} ProgSemMT.st{2} ProgSem.st{2}
+                ).
+  by apply stepP_prop.
+ by apply stepS_prop.
+wp; skip => /> *; progress.
+- rewrite /init_GlobalSt /= (_:3=1+1+1) 1:// !iotaS //= iota1 /=;
+  smt(get_setE).
+- rewrite /init_GlobalSt /= (_:3=1+1+1) 1:// !iotaS //= iota1 /=;
+  smt(get_setE).
+- rewrite /init_GlobalSt /= (_:3=1+1+1) 1:// !iotaS //= iota1 /=;
+  smt(get_setE).
+- rewrite /advStT; exists 0 (init_GlobalMTSt P{2}).`P1.
+  split; first done.
+  split; last by rewrite stepPiter0.
+  have ?:= (equivSt_init1 P{2}).
+  rewrite /init_GlobalSt /=  (_:3=1+1+1) 1:// !iotaS //= iota1 /=.
+  by rewrite !get_setE /#.
+- rewrite /advStT; exists 0 (init_GlobalMTSt P{2}).`P2.
+  split; first done.
+  split; last by rewrite stepPiter0.
+  have ?:= (equivSt_init2 P{2}).
+  rewrite /init_GlobalSt /=  (_:3=1+1+1) 1:// !iotaS //= iota1 /=.
+  by rewrite !get_setE /#.
+- rewrite /advStT; exists 0 (init_GlobalMTSt P{2}).`P3.
+  split; first done.
+  split; last by rewrite stepPiter0.
+  have ?:= (equivSt_init3 P{2}).
+  rewrite /init_GlobalSt /=  (_:3=1+1+1) 1:// !iotaS //= iota1 /=.
+  by rewrite !get_setE /#.
+qed.
+
 
 
 equiv SecurityMT:
