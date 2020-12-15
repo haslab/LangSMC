@@ -28,6 +28,7 @@ Semantics interface
 -------------------------
 
 The semantics interface discloses 6 procedures:
+
 * ``init(P)`` - initialises the evaluation with initial program P
 * ``step`` - sequential semantics procedures, that executes one instruction of the program.
 * ``stepInput(x)`` - processes the input ``x`` provided by the environment
@@ -47,6 +48,7 @@ Environment interface
 
 The environment semantics interface specifies how the environment
 interacts with the program evaluation. It discloses 3 procedures:
+
 * ``stepInput(x)`` - provides input ``x`` to the program semantics
 * ``getOutput`` - collects output from the program
 * ``activate`` - activates the adversary so that it can procede with the actual program evaluation.

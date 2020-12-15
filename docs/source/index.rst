@@ -132,6 +132,7 @@ domains (LINK TO DOCUMENTATION SECTION vertical):
    secure-api
    sp-api-semantics
    mp-api-semantics
+   protocol-api
    sp-protocol-api-semantics
    mp-protocol-api-semantics
 

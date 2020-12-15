@@ -34,11 +34,10 @@ Semantics interface
 -------------------------
 
 The semantics interface discloses 6 procedures:
+
 * ``init(P)`` - initialises the evaluation with initial program P
 * ``stepP(id)`` - locally executes party ``id``.
-* ``stepS`` - executes the entire set of
-parties at the same time. This procedure should be used to perform
-operations that require party synchronisation.
+* ``stepS`` - executes the entire set of parties at the same time. This procedure should be used to perform operations that require party synchronisation.
 * ``stepInput(x)`` - processes the input ``x`` provided by the environment
 * ``getOutput`` - releases output to the environment
 
@@ -63,6 +62,7 @@ Environment interface
 
 The environment semantics interface specifies how the environment
 interacts with the program evaluation. It discloses 3 procedures:
+
 * ``stepInput(x)`` - provides input ``x`` to the program semantics
 * ``getOutput`` - collects output from the program
 * ``activate`` - activates the adversary so that it can procede with the actual program evaluation.
@@ -91,8 +91,9 @@ Adversary interface
 
 The adversary semantics interface specifies how the adversary
 interacts with the program evaluation. It discloses 2 procedures: 
-- ``stepP(id)`` - locally executes party ``id``
-- ``stepS`` - performs a synchronised execution of the entire set of parties
+
+* ``stepP(id)`` - locally executes party ``id``
+* ``stepS`` - performs a synchronised execution of the entire set of parties
 
 ::
 
