@@ -830,10 +830,10 @@ op sync (st:L1.lconf_t*L2.lconf_t*L3.lconf_t): bool =
 (* Real-world semantics (multi-language) *)
 module RealSemML = {
   var sigma: L1.lconf_t * L2.lconf_t * L3.lconf_t
-  proc init(P: LS.L.L): unit = {
-    sigma <- (L1.initial_lconf (C1.comp P),
-              L2.initial_lconf (C2.comp P),
-              L3.initial_lconf (C3.comp P));
+  proc init(P1: L1.L, P2: L2.L, P3: L3.L): unit = {
+    sigma <- (L1.initial_lconf P1,
+              L2.initial_lconf P2,
+              L3.initial_lconf P3);
   }
   proc stepP(i: int): bool = {
     var oc1, oc2, oc3, r;
@@ -896,10 +896,10 @@ module REAL_ML(Z: Z_t, A: Adv_t) = {
 (* Simulated (multi-language) real-world semantics *)
 module SimRealSemML = {
   var sigma: L1.lconf_t * L2.lconf_t * L3.lconf_t
-  proc init(P: LS.L.L): unit = {
-    sigma <- (L1.initial_lconf (C1.comp P),
-              L2.initial_lconf (C2.comp P),
-              L3.initial_lconf (C3.comp P));
+  proc init(P1: L1.L, P2: L2.L, P3: L3.L): unit = {
+    sigma <- (L1.initial_lconf P1,
+              L2.initial_lconf P2,
+              L3.initial_lconf P3);
   }
   proc stepP(i: int): bool = {
     var oc1, oc2, oc3, r;
@@ -950,7 +950,7 @@ module SimRealSemML = {
 (* simulator (D) - Fig. 9 *)
 module DSem(RSem: LS.Adv_Sem_t): LS.Adv_Sem_t = {
   proc init(P:LS.L.L): unit = { 
-    SimRealSemML.init(P);
+    SimRealSemML.init(C1.comp P, C2.comp P, C3.comp P);
   }
   proc stepP(i: int): bool = {
     var b;
