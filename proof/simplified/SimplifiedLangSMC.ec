@@ -703,7 +703,7 @@ op comp : L -> LT.L.
 (* relation ≈ *)
 op relLSt : lconf_t -> LT.lconf_t -> bool.
 (* Certified-compiler assumptions *)
-axiom relLSt_init (P:LS.L):
+axiom relLSt_init P:
  relLSt (LS.initial_lconf P) (LT.initial_lconf (comp P)).
 axiom backwardsim ss st kt st':
  relLSt ss st =>
@@ -712,6 +712,8 @@ axiom backwardsim ss st kt st':
  (exists ks ss', LS.lstep_iter ks ss = Some ss'
                  /\ relLSt ss' st'
                  /\ 0 <= ks).
+axiom call_consistent sigma1 sigma2:
+  relLSt sigma1 sigma2 => LS.lcallSt sigma1 = LT.lcallSt sigma2.
 end CertifiedCompiler.
 
 (**
