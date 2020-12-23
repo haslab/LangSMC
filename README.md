@@ -9,6 +9,8 @@ In this work we review the role of these compilers and provide a formal treatmen
 
 We link the former to the setting of certified compilation, paving the way to leverage long-run efforts such as CompCert in future high-assurance SMC compilers. Security is framed in the standard cryptographic sense. This repository reports on the machine-checked formalisation of our results carried out in EasyCrypt, an interactive theorem prover for code-based cryptographic security proofs.
 
+The development is highly modular, and is spread among a considerable number of files. For the sake of illustration in the companion article *"A Formal Treatment of the Role of Verified Compilers in Secure Computation"*, we have produced a simplified, single-file version, that includes all definitions and theorem statements mentioned. Proofs in this file have been replaced to pointers to the corresponding results in the original formalisation. It can be found [here](proof/simplified/SimplifiedLangSMC.ec).
+
 ## Repository organisation
 
 We disclose an image of the main EasyCrypt repository under the `easycrypt` submodule folder. 
